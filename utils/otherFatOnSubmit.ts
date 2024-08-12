@@ -1,6 +1,8 @@
 import { ApiPromise, WsProvider } from "@polkadot/api";
 import { decodeAddress } from "@polkadot/keyring";
-import { type InjectedWindow } from "@polkadot/extension-inject/types";
+// import { type InjectedWindow } from "@polkadot/extension-inject/types";
+import { Signer } from "@polkadot/api/types";
+import { WalletAccount } from "@talismn/connect-wallets";
 
 function numberToChain(input: string, decimals: number) {
   const [integer, decimal = ""] = input.split(".");
@@ -47,12 +49,15 @@ const settingsPromise = (async () => {
   };
 })();
 
-const polkaDotEnabledWalletPromise = (async () => {
-  return (window as Window & InjectedWindow).injectedWeb3["polkadot-js"]
-    .enable!("Polar Path");
-})();
+// const polkaDotEnabledWalletPromise = (async () => {
+//   return (window as Window & InjectedWindow).injectedWeb3["polkadot-js"]
+//     .enable!("Polar Path");
+// })();
 
-export async function submitParaChainToAssetHub(event: SubmitEvent) {
+export async function submitParaChainToAssetHub(
+  event: SubmitEvent,
+  polkadotAccount: WalletAccount | null,
+) {
   event.preventDefault();
 
   const { paraChainApi, pallet, decimals } = await settingsPromise;
@@ -72,11 +77,26 @@ export async function submitParaChainToAssetHub(event: SubmitEvent) {
   const beneficiary = { V3: { parents: 0, interior: { X1 } } };
   const tx = paraChainApi.tx[pallet].switch(amount, beneficiary);
 
-  const { signer } = await polkaDotEnabledWalletPromise;
+  // polkadotAccount from useEffect on Transfer.tsx
+
+  // import { Signer } from "@polkadot/api/types";
+
+  if (polkadotAccount === null) throw Error(`Polkadot Wallet not connected.`);
+  // if (polkadotAccount.address !== data.sourceAccount)
+  //   throw Error(`Source account mismatch.`);
+  // const walletSigner = {
+  //   address: polkadotAccount.address,
+  //   signer: polkadotAccount.signer! as Signer,
+  // };
+
+  const signer = polkadotAccount.signer as Signer;
   await tx.signAndSend(sender, { signer });
 }
 
-export async function submitAssetHubToParaChain(event: SubmitEvent) {
+export async function submitAssetHubToParaChain(
+  event: SubmitEvent,
+  polkadotAccount: WalletAccount | null,
+) {
   event.preventDefault();
 
   const { decimals, destination, remoteAssetId } = await settingsPromise;
@@ -107,6 +127,10 @@ export async function submitAssetHubToParaChain(event: SubmitEvent) {
     "Unlimited",
   );
 
-  const { signer } = await polkaDotEnabledWalletPromise;
+  if (polkadotAccount === null) throw Error(`Polkadot Wallet not connected.`);
+
+  const signer = polkadotAccount.signer as Signer;
+
+  // const { signer } = await polkaDotEnabledWalletPromise;
   await tx.signAndSend(sender, { signer });
 }
