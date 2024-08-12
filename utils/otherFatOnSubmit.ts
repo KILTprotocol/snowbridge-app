@@ -36,7 +36,7 @@ const settingsPromise = (async () => {
   };
 
   const switchPair = await paraChainApi.query[settings.pallet].switchPair();
-  const remoteAssetId = switchPair.unwrap().remoteAssetId.toJSON().v3;
+  const remoteAssetId = (switchPair as any).unwrap().remoteAssetId.toJSON().v3;
 
   return {
     ...settings,
