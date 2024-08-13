@@ -303,7 +303,7 @@ export function onSubmit({
         closeButton: true,
         duration: 60000,
         id: "transfer_success",
-        description: "Token transfer was succesfully initiated.",
+        description: "Token transfer was successfully initiated.",
         important: true,
         action: {
           label: "View",
@@ -322,7 +322,7 @@ export function onSubmit({
       setBusyMessage("");
       setError({
         title: "Send Error",
-        description: `Error occured while trying to send transaction.`,
+        description: `Error occurred while trying to send transaction.`,
         errors: [],
       });
     }
