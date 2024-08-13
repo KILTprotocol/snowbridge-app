@@ -3,6 +3,7 @@ import { decodeAddress } from "@polkadot/keyring";
 // import { type InjectedWindow } from "@polkadot/extension-inject/types";
 import { Signer } from "@polkadot/api/types";
 import { WalletAccount } from "@talismn/connect-wallets";
+import { parachainConfig } from "./parachainConfig";
 
 function numberToChain(input: string, decimals: number) {
   const [integer, decimal = ""] = input.split(".");
@@ -16,17 +17,10 @@ const assetHubApiPromise = ApiPromise.create({
   provider: new WsProvider(ASSET_HUB_ENDPOINT),
 });
 
-const paraChainSettings = {
-  Kilt: {
-    name: "Kilt",
-    endpoint: "ws://127.0.0.1:9004",
-    pallet: "assetSwitchPool1",
-    destination: { parents: 1, interior: { X1: { Parachain: 2086 } } },
-  },
-};
+const parachainName = "Kilt";
 
-const settingsPromise = (async () => {
-  const settings = paraChainSettings.Kilt;
+const settingsPromise = (async (parachainName) => {
+  const settings = parachainConfig[parachainName];
 
   const provider = new WsProvider(settings.endpoint);
   const paraChainApi = await ApiPromise.create({ provider });
@@ -47,7 +41,7 @@ const settingsPromise = (async () => {
     formatOptions,
     remoteAssetId,
   };
-})();
+})(parachainName);
 
 // const polkaDotEnabledWalletPromise = (async () => {
 //   return (window as Window & InjectedWindow).injectedWeb3["polkadot-js"]
