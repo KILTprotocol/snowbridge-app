@@ -1,7 +1,7 @@
 "use client";
 import { formatBalance } from "@/utils/formatting";
 import { PendingTransferAction, Transfer } from "@/store/transferHistory";
-import { Signer } from "@polkadot/api/types";
+import { Signer as DotSigner } from "@polkadot/api/types";
 import {
   Context,
   assets,
@@ -118,7 +118,7 @@ export function onSubmit({
             throw Error(`Source account mismatch.`);
           const walletSigner = {
             address: polkadotAccount.address,
-            signer: polkadotAccount.signer! as Signer,
+            signer: polkadotAccount.signer! as DotSigner,
           };
           const plan = await toEthereum.validateSend(
             context,

@@ -1,7 +1,7 @@
 import { ApiPromise, WsProvider } from "@polkadot/api";
 import { decodeAddress } from "@polkadot/keyring";
 // import { type InjectedWindow } from "@polkadot/extension-inject/types";
-import { Signer } from "@polkadot/api/types";
+import { Signer as DotSigner } from "@polkadot/api/types";
 import { WalletAccount } from "@talismn/connect-wallets";
 import { parachainConfig } from "./parachainConfig";
 
@@ -83,7 +83,7 @@ export async function submitParaChainToAssetHub(
   //   signer: polkadotAccount.signer! as Signer,
   // };
 
-  const signer = polkadotAccount.signer as Signer;
+  const signer = polkadotAccount.signer as DotSigner;
   await tx.signAndSend(sender, { signer });
 }
 
@@ -123,7 +123,7 @@ export async function submitAssetHubToParaChain(
 
   if (polkadotAccount === null) throw Error(`Polkadot Wallet not connected.`);
 
-  const signer = polkadotAccount.signer as Signer;
+  const signer = polkadotAccount.signer as DotSigner;
 
   // const { signer } = await polkaDotEnabledWalletPromise;
   await tx.signAndSend(sender, { signer });
