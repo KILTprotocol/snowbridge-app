@@ -27,8 +27,6 @@ import { parseAmount } from "@/utils/balances";
 import { AppRouter, FormData, ErrorInfo } from "@/utils/types";
 import { validateOFAC } from "@/components/Transfer";
 import { ISubmittableResult } from "@polkadot/types/types";
-import { EventRecord } from "@polkadot/types/interfaces";
-import { u8aToHex } from "@polkadot/util";
 
 export function onSubmit({
   context,
@@ -139,30 +137,30 @@ export function onSubmit({
           });
           break;
         }
-        case "parachainToAsset": {
-          transfer = await submitParachainToAssetHub({
-            context,
-            source,
-            polkadotAccount,
-            data,
-            amountInSmallestUnit,
-            setError,
-            setBusyMessage,
-          });
-          break;
-        }
-        case "assetToParachain": {
-          transfer = await submitAssetHubToParachain({
-            context,
-            source,
-            polkadotAccount,
-            data,
-            amountInSmallestUnit,
-            setError,
-            setBusyMessage,
-          });
-          break;
-        }
+        // case "parachainToAsset": {
+        //   transfer = await submitParachainToAssetHub({
+        //     context,
+        //     source,
+        //     polkadotAccount,
+        //     data,
+        //     amountInSmallestUnit,
+        //     setError,
+        //     setBusyMessage,
+        //   });
+        //   break;
+        // }
+        // case "assetToParachain": {
+        //   transfer = await submitAssetHubToParachain({
+        //     context,
+        //     source,
+        //     polkadotAccount,
+        //     data,
+        //     amountInSmallestUnit,
+        //     setError,
+        //     setBusyMessage,
+        //   });
+        //   break;
+        // }
         default:
           throw Error(`Invalid form state: cannot infer source type.`);
       }
@@ -414,31 +412,7 @@ async function handleEthereumToSubstrateTransfer({
   };
 }
 
-async function getParachainConfig(parachainName: string) {
-  const settings = parachainConfig[parachainName];
-
-  const provider = new WsProvider(settings.endpoint);
-  const parachainApi = await ApiPromise.create({ provider });
-
-  const decimals = parachainApi.registry.chainDecimals[0];
-  const formatOptions = {
-    decimals,
-    withUnit: parachainApi.registry.chainTokens[0],
-  };
-
-  const switchPair = await parachainApi.query[settings.pallet].switchPair();
-  const remoteAssetId = (switchPair as any).unwrap().remoteAssetId.toJSON().v3;
-
-  return {
-    ...settings,
-    parachainApi,
-    decimals,
-    formatOptions,
-    remoteAssetId,
-  };
-}
-
-async function submitParachainToAssetHub({
+export async function submitParachainToAssetHub({
   context,
   polkadotAccount,
   source,
@@ -454,10 +428,13 @@ async function submitParachainToAssetHub({
   amountInSmallestUnit: bigint;
   setError: Dispatch<SetStateAction<ErrorInfo | null>>;
   setBusyMessage: Dispatch<SetStateAction<string>>;
-}): Promise<Transfer> {
-  const { pallet } = await getParachainConfig(source.name);
+}): Promise<any> {
+  const { pallet } = parachainConfig[source.name];
+  if (!source.paraInfo) {
+    throw Error("No source parachain found");
+  }
 
-  const parachainApi = context.polkadot.api[source.name];
+  const parachainApi = context.polkadot.api.parachains[source.paraInfo?.paraId];
 
   const beneficiary = {
     V3: {
@@ -475,122 +452,131 @@ async function submitParachainToAssetHub({
     });
     throw Error(`Polkadot account not connected.`);
   }
-
-  const signer = polkadotAccount.signer as DotSigner;
+  let result: ISubmittableResult | Transfer | PromiseLike<Transfer>;
   setBusyMessage("Waiting for transaction to be confirmed by wallet.");
-
-  const txSigned = await tx.signAsync(polkadotAccount.address, { signer });
-  const transactionResult = await new Promise<{
-    blockNumber: number;
-    blockHash: string;
-    txIndex: number;
-    txHash: string;
-    success: boolean;
-    events: EventRecord[];
-    dispatchError?: any;
-    messageId?: string;
-  }>(async (resolve, reject) => {
-    try {
-      txSigned.send(async (result: ISubmittableResult) => {
-        if (result.isError) {
-          console.error(result);
-          throw new Error(
-            result.internalError || result.dispatchError || result,
-          );
-        }
-
-        if (result.isFinalized) {
-          const finalizedData = {
-            txHash: u8aToHex(result.txHash),
-            txIndex: result.txIndex || 0,
-            blockNumber: Number(result.blockNumber),
-            blockHash: "",
-            events: result.events,
-          };
-
-          let successResolved = false;
-
-          result.events.forEach((eventRecord) => {
-            if (
-              assetHubApi.events.system.ExtrinsicFailed.is(eventRecord.event)
-            ) {
-              successResolved = true;
-              throw new Error(
-                eventRecord.event.data.toHuman(true)?.dispatchError,
-              );
-            }
-
-            if (assetHubApi.events.polkadotXcm.Sent.is(eventRecord.event)) {
-              successResolved = true;
-              resolve({
-                ...finalizedData,
-                success: true,
-                messageId: eventRecord.event.data.toPrimitive()[3],
-              });
-            }
-          });
-
-          if (!successResolved) {
-            resolve({
-              ...finalizedData,
-              success: false,
-            });
-          }
-        }
-      });
-    } catch (error) {
-      reject(error);
-    }
+  const signer = polkadotAccount.signer as DotSigner;
+  result = await new Promise((resolve, reject) => {
+    tx.signAndSend(polkadotAccount.address, { signer }, (x) => {
+      resolve(x);
+    }).catch(reject);
   });
-  const messageId = transactionResult.messageId || "";
-  return {
-    id: messageId,
-    status: history.TransferStatus.Pending,
-    info: {
-      amount: amountInSmallestUnit.toString(),
-      sourceAddress: data.sourceAccount,
-      beneficiaryAddress: data.beneficiary,
-      tokenAddress: data.token,
-      when: new Date(),
-    },
-    submitted: {
-      block_hash:
-        transactionResult.success?.sourceParachain?.blockHash ??
-        transactionResult.success?.assetHub.blockHash ??
-        "",
-      block_num:
-        transactionResult.success?.sourceParachain?.blockNumber ??
-        transactionResult.success?.assetHub.blockNumber ??
-        0,
-      block_timestamp: 0,
-      messageId: messageId,
-      account_id: data.source,
-      bridgeHubMessageId: "",
-      extrinsic_hash:
-        transactionResult.success?.sourceParachain?.txHash ??
-        transactionResult.success?.assetHub.txHash ??
-        "",
-      extrinsic_index:
-        transactionResult.success?.sourceParachain !== undefined
-          ? transactionResult.success.sourceParachain.blockNumber.toString() +
-            "-" +
-            transactionResult.success.sourceParachain.txIndex.toString()
-          : transactionResult.success?.assetHub !== undefined
-            ? transactionResult.success?.assetHub?.blockNumber.toString() +
-              "-" +
-              transactionResult.success?.assetHub.txIndex.toString()
-            : "unknown",
 
-      relayChain: {
-        block_hash: transactionResult.success?.relayChain.submittedAtHash ?? "",
-        block_num: 0,
-      },
-      success: true,
-    },
-  };
+  return result;
+  // const signer = polkadotAccount.signer as DotSigner;
+  // setBusyMessage("Waiting for transaction to be confirmed by wallet.");
+
+  // const txSigned = await tx.signAsync(polkadotAccount.address, { signer });
+  // const transactionResult = await new Promise<{
+  //   blockNumber: number;
+  //   blockHash: string;
+  //   txIndex: number;
+  //   txHash: string;
+  //   success: boolean;
+  //   events: EventRecord[];
+  //   dispatchError?: any;
+  //   messageId?: string;
+  // }>(async (resolve, reject) => {
+  //   try {
+  //     txSigned.send(async (result: ISubmittableResult) => {
+  //       if (result.isError) {
+  //         console.error(result);
+  //         throw new Error(
+  //           result.internalError || result.dispatchError || result,
+  //         );
+  //       }
+
+  //       if (result.isFinalized) {
+  //         const finalizedData = {
+  //           txHash: u8aToHex(result.txHash),
+  //           txIndex: result.txIndex || 0,
+  //           blockNumber: Number(result.blockNumber),
+  //           blockHash: "",
+  //           events: result.events,
+  //         };
+
+  //         let successResolved = false;
+
+  //         result.events.forEach((eventRecord) => {
+  //           if (
+  //             assetHubApi.events.system.ExtrinsicFailed.is(eventRecord.event)
+  //           ) {
+  //             successResolved = true;
+  //             throw new Error(
+  //               eventRecord.event.data.toHuman(true)?.dispatchError,
+  //             );
+  //           }
+
+  //           if (assetHubApi.events.polkadotXcm.Sent.is(eventRecord.event)) {
+  //             successResolved = true;
+  //             resolve({
+  //               ...finalizedData,
+  //               success: true,
+  //               messageId: eventRecord.event.data.toPrimitive()[3],
+  //             });
+  //           }
+  //         });
+
+  //         if (!successResolved) {
+  //           resolve({
+  //             ...finalizedData,
+  //             success: false,
+  //           });
+  //         }
+  //       }
+  //     });
+  //   } catch (error) {
+  //     reject(error);
+  //   }
+  // });
+  // const messageId = transactionResult.messageId || "";
+  // return {
+  //   id: messageId,
+  //   status: history.TransferStatus.Pending,
+  //   info: {
+  //     amount: amountInSmallestUnit.toString(),
+  //     sourceAddress: data.sourceAccount,
+  //     beneficiaryAddress: data.beneficiary,
+  //     tokenAddress: data.token,
+  //     when: new Date(),
+  //   },
+  //   submitted: {
+  //     block_hash:
+  //       transactionResult.success?.sourceParachain?.blockHash ??
+  //       transactionResult.success?.assetHub.blockHash ??
+  //       "",
+  //     block_num:
+  //       transactionResult.success?.sourceParachain?.blockNumber ??
+  //       transactionResult.success?.assetHub.blockNumber ??
+  //       0,
+  //     block_timestamp: 0,
+  //     messageId: messageId,
+  //     account_id: data.source,
+  //     bridgeHubMessageId: "",
+  //     extrinsic_hash:
+  //       transactionResult.success?.sourceParachain?.txHash ??
+  //       transactionResult.success?.assetHub.txHash ??
+  //       "",
+  //     extrinsic_index:
+  //       transactionResult.success?.sourceParachain !== undefined
+  //         ? transactionResult.success.sourceParachain.blockNumber.toString() +
+  //           "-" +
+  //           transactionResult.success.sourceParachain.txIndex.toString()
+  //         : transactionResult.success?.assetHub !== undefined
+  //           ? transactionResult.success?.assetHub?.blockNumber.toString() +
+  //             "-" +
+  //             transactionResult.success?.assetHub.txIndex.toString()
+  //           : "unknown",
+
+  //     relayChain: {
+  //       block_hash: transactionResult.success?.relayChain.submittedAtHash ?? "",
+  //       block_num: 0,
+  //     },
+  //     success: true,
+  //   },
+  // };
 }
 
-async function submitAssetHubToParachain({
+export async function submitAssetHubToParachain({
   context,
   polkadotAccount,
   source,
@@ -606,15 +592,25 @@ async function submitAssetHubToParachain({
   amountInSmallestUnit: bigint;
   setError: Dispatch<SetStateAction<ErrorInfo | null>>;
   setBusyMessage: Dispatch<SetStateAction<string>>;
-}): Promise<Transfer> {
-  const { destination, remoteAssetId } = await getParachainConfig(source.name);
+}): Promise<ISubmittableResult | Transfer> {
+  const { pallet, destination } = parachainConfig[source.name];
+  if (!source.paraInfo) {
+    throw Error("No source parachain found");
+  }
 
+  const assetHubApi = context.polkadot.api.assetHub;
+
+  source.paraInfo?.decimals;
+  source.paraInfo?.addressType;
+  source.paraInfo?.destinationFeeDOT;
+  source.destinationIds;
+
+  const switchPair = await assetHubApi.query[pallet].switchPair();
+  const remoteAssetId = (switchPair as any).unwrap().remoteAssetId.toJSON().v3;
   const beneficiary = {
     parents: 0,
     interior: { X1: { AccountId32: { id: decodeAddress(data.beneficiary) } } },
   };
-
-  const assetHubApi = context.polkadot.api.assetHub;
 
   const tx = assetHubApi.tx.polkadotXcm.transferAssetsUsingTypeAndThen(
     // this should actually be a multilocation of the destination of the parachain
@@ -637,114 +633,124 @@ async function submitAssetHubToParachain({
   }
 
   const signer = polkadotAccount.signer as DotSigner;
-  const txSigned = await tx.signAsync(polkadotAccount.address, { signer });
+  let result: ISubmittableResult | Transfer | PromiseLike<Transfer>;
   setBusyMessage("Waiting for transaction to be confirmed by wallet.");
-  const transactionResult = await new Promise<{
-    blockNumber: number;
-    blockHash: string;
-    txIndex: number;
-    txHash: string;
-    success: boolean;
-    events: EventRecord[];
-    dispatchError?: any;
-    messageId?: string;
-  }>(async (resolve, reject) => {
-    try {
-      txSigned.send(async (result: ISubmittableResult) => {
-        if (result.isError) {
-          console.error(result);
-          throw new Error(
-            result.internalError || result.dispatchError || result,
-          );
-        }
 
-        if (result.isFinalized) {
-          const finalizedData = {
-            txHash: u8aToHex(result.txHash),
-            txIndex: result.txIndex || 0,
-            blockNumber: Number(result.blockNumber),
-            blockHash: "",
-            events: result.events,
-          };
-
-          let successResolved = false;
-
-          result.events.forEach((eventRecord) => {
-            if (
-              assetHubApi.events.system.ExtrinsicFailed.is(eventRecord.event)
-            ) {
-              successResolved = true;
-              throw new Error(
-                eventRecord.event.data.toHuman(true)?.dispatchError,
-              );
-            }
-
-            if (assetHubApi.events.polkadotXcm.Sent.is(eventRecord.event)) {
-              successResolved = true;
-              resolve({
-                ...finalizedData,
-                success: true,
-                messageId: eventRecord.event.data.toPrimitive()[3],
-              });
-            }
-          });
-
-          if (!successResolved) {
-            resolve({
-              ...finalizedData,
-              success: false,
-            });
-          }
-        }
-      });
-    } catch (error) {
-      reject(error);
-    }
+  result = await new Promise((resolve, reject) => {
+    tx.signAndSend(polkadotAccount.address, { signer }, (x) => {
+      resolve(x);
+    }).catch(reject);
   });
-  const messageId = transactionResult.messageId || "";
-  return {
-    id: messageId,
-    status: history.TransferStatus.Pending,
-    info: {
-      amount: amountInSmallestUnit.toString(),
-      sourceAddress: data.sourceAccount,
-      beneficiaryAddress: data.beneficiary,
-      tokenAddress: data.token,
-      when: new Date(),
-    },
-    submitted: {
-      block_hash:
-        transactionResult.success?.sourceParachain?.blockHash ??
-        transactionResult.success?.assetHub.blockHash ??
-        "",
-      block_num:
-        transactionResult.success?.sourceParachain?.blockNumber ??
-        transactionResult.success?.assetHub.blockNumber ??
-        0,
-      block_timestamp: 0,
-      messageId: messageId,
-      account_id: data.source,
-      bridgeHubMessageId: "",
-      extrinsic_hash:
-        transactionResult.success?.sourceParachain?.txHash ??
-        transactionResult.success?.assetHub.txHash ??
-        "",
-      extrinsic_index:
-        transactionResult.success?.sourceParachain !== undefined
-          ? transactionResult.success.sourceParachain.blockNumber.toString() +
-            "-" +
-            transactionResult.success.sourceParachain.txIndex.toString()
-          : transactionResult.success?.assetHub !== undefined
-            ? transactionResult.success?.assetHub?.blockNumber.toString() +
-              "-" +
-              transactionResult.success?.assetHub.txIndex.toString()
-            : "unknown",
 
-      relayChain: {
-        block_hash: transactionResult.success?.relayChain.submittedAtHash ?? "",
-        block_num: 0,
-      },
-      success: true,
-    },
-  };
+  return result;
+  // return result;
+  // const txSigned = await tx.signAsync(polkadotAccount.address, { signer });
+  // const transactionResult = await new Promise<{
+  //   blockNumber: number;
+  //   blockHash: string;
+  //   txIndex: number;
+  //   txHash: string;
+  //   success: boolean;
+  //   events: EventRecord[];
+  //   dispatchError?: any;
+  //   messageId?: string;
+  // }>(async (resolve, reject) => {
+  //   try {
+  //     txSigned.send(async (result: ISubmittableResult) => {
+  //       if (result.isError) {
+  //         console.error(result);
+  //         throw new Error(
+  //           result.internalError || result.dispatchError || result,
+  //         );
+  //       }
+
+  //       if (result.isFinalized) {
+  //         const finalizedData = {
+  //           txHash: u8aToHex(result.txHash),
+  //           txIndex: result.txIndex || 0,
+  //           blockNumber: Number(result.blockNumber),
+  //           blockHash: "",
+  //           events: result.events,
+  //         };
+
+  //         let successResolved = false;
+
+  //         result.events.forEach((eventRecord) => {
+  //           if (
+  //             assetHubApi.events.system.ExtrinsicFailed.is(eventRecord.event)
+  //           ) {
+  //             successResolved = true;
+  //             throw new Error(
+  //               eventRecord.event.data.toHuman(true)?.dispatchError,
+  //             );
+  //           }
+
+  //           if (assetHubApi.events.polkadotXcm.Sent.is(eventRecord.event)) {
+  //             successResolved = true;
+  //             resolve({
+  //               ...finalizedData,
+  //               success: true,
+  //               messageId: eventRecord.event.data.toPrimitive()[3],
+  //             });
+  //           }
+  //         });
+
+  //         if (!successResolved) {
+  //           resolve({
+  //             ...finalizedData,
+  //             success: false,
+  //           });
+  //         }
+  //       }
+  //     });
+  //   } catch (error) {
+  //     reject(error);
+  //   }
+  // });
+  // const messageId = transactionResult.messageId || "";
+  // return {
+  //   id: messageId,
+  //   status: history.TransferStatus.Pending,
+  //   info: {
+  //     amount: amountInSmallestUnit.toString(),
+  //     sourceAddress: data.sourceAccount,
+  //     beneficiaryAddress: data.beneficiary,
+  //     tokenAddress: data.token,
+  //     when: new Date(),
+  //   },
+  //   submitted: {
+  //     block_hash:
+  //       transactionResult.success?.sourceParachain?.blockHash ??
+  //       transactionResult.success?.assetHub.blockHash ??
+  //       "",
+  //     block_num:
+  //       transactionResult.success?.sourceParachain?.blockNumber ??
+  //       transactionResult.success?.assetHub.blockNumber ??
+  //       0,
+  //     block_timestamp: 0,
+  //     messageId: messageId,
+  //     account_id: data.source,
+  //     bridgeHubMessageId: "",
+  //     extrinsic_hash:
+  //       transactionResult.success?.sourceParachain?.txHash ??
+  //       transactionResult.success?.assetHub.txHash ??
+  //       "",
+  //     extrinsic_index:
+  //       transactionResult.success?.sourceParachain !== undefined
+  //         ? transactionResult.success.sourceParachain.blockNumber.toString() +
+  //           "-" +
+  //           transactionResult.success.sourceParachain.txIndex.toString()
+  //         : transactionResult.success?.assetHub !== undefined
+  //           ? transactionResult.success?.assetHub?.blockNumber.toString() +
+  //             "-" +
+  //             transactionResult.success?.assetHub.txIndex.toString()
+  //           : "unknown",
+
+  //     relayChain: {
+  //       block_hash: transactionResult.success?.relayChain.submittedAtHash ?? "",
+  //       block_num: 0,
+  //     },
+  //     success: true,
+  //   },
+  // };
 }

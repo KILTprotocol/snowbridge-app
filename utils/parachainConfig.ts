@@ -40,7 +40,7 @@ export const parachainConfig: Config = {
       parents: 1,
       interior: {
         X1: {
-          Parachain: 2086,
+          Parachain: 4504,
         },
       },
     },
