@@ -66,6 +66,8 @@ import { doDepositAndApproveWeth } from "@/utils/doDepositAndApproveWeth";
 import { FormData, ErrorInfo, AccountInfo, AppRouter } from "@/utils/types";
 import { onSubmit } from "@/utils/onSubmit";
 
+/** The Office of Foreign Assets Control is a financial intelligence and enforcement agency of the Treasury Department of the United States of America.
+ *  It administers and enforces economic and trade sanctions in support of U.S.A. national security and foreign policy objectives. */
 export const validateOFAC = async (
   data: FormData,
   form: UseFormReturn<FormData>,
