@@ -1,4 +1,4 @@
-import { parachainConfig } from "@/utils/parachainConfig";
+import { parachainConfigs } from "@/utils/parachainConfigs";
 import { u8aToHex } from "@polkadot/util";
 import { blake2AsU8a, encodeAddress } from "@polkadot/util-crypto";
 import {
@@ -211,8 +211,8 @@ export async function createContext(
           process.env.NEXT_PUBLIC_RELAY_CHAIN_URL ?? config.RELAY_CHAIN_URL,
         parachains: [
           ...config.PARACHAINS,
-          parachainConfig.Kilt.endpoint,
-          parachainConfig.Rilt.endpoint,
+          parachainConfigs.Kilt.endpoint,
+          parachainConfigs.Rilt.endpoint,
         ],
       },
     },

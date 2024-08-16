@@ -3,7 +3,7 @@
 import { ApiPromise, WsProvider } from "@polkadot/api";
 import { decodeAddress } from "@polkadot/keyring";
 
-import { parachainConfig } from "./parachainConfig";
+import { parachainConfigs } from "./parachainConfigs";
 
 import { formatBalance } from "@/utils/formatting";
 import { PendingTransferAction, Transfer } from "@/store/transferHistory";
@@ -450,7 +450,7 @@ export async function submitParachainToAssetHub({
   setError: Dispatch<SetStateAction<ErrorInfo | null>>;
   setBusyMessage: Dispatch<SetStateAction<string>>;
 }): Promise<any> {
-  const { pallet } = parachainConfig[source.name];
+  const { pallet } = parachainConfigs[source.name];
   if (source.type !== "substrate") {
     throw Error(`Invalid form state: source type mismatch.`);
   }
@@ -628,7 +628,7 @@ export async function submitAssetHubToParachain({
   setError: Dispatch<SetStateAction<ErrorInfo | null>>;
   setBusyMessage: Dispatch<SetStateAction<string>>;
 }): Promise<ISubmittableResult | Transfer> {
-  const { pallet, parachainId } = parachainConfig[source.name];
+  const { pallet, parachainId } = parachainConfigs[source.name];
   if (source.type !== "substrate") {
     throw Error(`Invalid form state: source type mismatch.`);
   }

@@ -9,7 +9,7 @@ interface ParaConfig {
   [key: string]: Entry;
 }
 
-export const parachainConfig: ParaConfig = {
+export const parachainConfigs: ParaConfig = {
   Kilt: {
     name: "Kilt",
     endpoint: "wss://kilt.dotters.network",
