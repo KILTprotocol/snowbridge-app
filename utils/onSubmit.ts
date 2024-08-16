@@ -103,9 +103,9 @@ export function onSubmit({
         );
       if (destination.id !== data.destination)
         throw Error(
-          `Invalid form state: source mismatch ${destination.id} and ${data.destination}.`,
+          `Invalid form state: destination mismatch ${destination.id} and ${data.destination}.`,
         );
-      if (context === null) throw Error(`Context not connected.`);
+      if (context === null) throw Error(`Context not configured.`);
 
       setBusyMessage("Validating...");
 
@@ -416,6 +416,7 @@ export async function submitParachainToAssetHub({
   context,
   polkadotAccount,
   source,
+  destination,
   data,
   amountInSmallestUnit,
   setError,
@@ -424,15 +425,22 @@ export async function submitParachainToAssetHub({
   context: Context;
   polkadotAccount: WalletAccount | null;
   source: environment.TransferLocation;
+  destination: environment.TransferLocation;
   data: FormData;
   amountInSmallestUnit: bigint;
   setError: Dispatch<SetStateAction<ErrorInfo | null>>;
   setBusyMessage: Dispatch<SetStateAction<string>>;
 }): Promise<any> {
   const { pallet } = parachainConfig[source.name];
+  if (source.type !== "substrate")
+    throw Error(`Invalid form state: source type mismatch.`);
   if (!source.paraInfo) {
-    throw Error("No source parachain found");
+    throw Error(`Invalid form state: source does not have parachain id.`);
   }
+  if (destination.type !== "substrate")
+    throw Error(`Invalid form state: destination type mismatch.`);
+  if (destination.paraInfo === undefined)
+    throw Error(`Invalid form state: destination does not have parachain id.`);
 
   const parachainApi = context.polkadot.api.parachains[source.paraInfo?.paraId];
 
@@ -580,6 +588,7 @@ export async function submitAssetHubToParachain({
   context,
   polkadotAccount,
   source,
+  destination,
   data,
   amountInSmallestUnit,
   setError,
@@ -588,15 +597,22 @@ export async function submitAssetHubToParachain({
   context: Context;
   polkadotAccount: WalletAccount | null;
   source: environment.TransferLocation;
+  destination: environment.TransferLocation;
   data: FormData;
   amountInSmallestUnit: bigint;
   setError: Dispatch<SetStateAction<ErrorInfo | null>>;
   setBusyMessage: Dispatch<SetStateAction<string>>;
 }): Promise<ISubmittableResult | Transfer> {
-  const { pallet, destination } = parachainConfig[source.name];
+  const { pallet, parachainId } = parachainConfig[source.name];
+  if (source.type !== "substrate")
+    throw Error(`Invalid form state: source type mismatch.`);
   if (!source.paraInfo) {
-    throw Error("No source parachain found");
+    throw Error(`Invalid form state: source does not have parachain id.`);
   }
+  if (destination.type !== "substrate")
+    throw Error(`Invalid form state: destination type mismatch.`);
+  if (destination.paraInfo === undefined)
+    throw Error(`Invalid form state: destination does not have parachain id.`);
 
   const assetHubApi = context.polkadot.api.assetHub;
 
@@ -612,9 +628,20 @@ export async function submitAssetHubToParachain({
     interior: { X1: { AccountId32: { id: decodeAddress(data.beneficiary) } } },
   };
 
+  const pathToParachain = {
+    parents: 1,
+    interior: {
+      X1: {
+        Parachain: parachainId,
+      },
+    },
+  };
+
   const tx = assetHubApi.tx.polkadotXcm.transferAssetsUsingTypeAndThen(
     // this should actually be a multilocation of the destination of the parachain
-    { V3: destination },
+    {
+      V3: pathToParachain,
+    },
     { V3: [{ id: remoteAssetId, fun: { Fungible: amountInSmallestUnit } }] },
     "LocalReserve",
     { V3: remoteAssetId },
