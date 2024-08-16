@@ -39,6 +39,7 @@ export default [
       ],
       semi: ["error", "always"],
       "comma-dangle": ["error", "always-multiline"],
+      curly: "error",
     },
   },
 ];

@@ -3,7 +3,7 @@
 import { ApiPromise, WsProvider } from "@polkadot/api";
 import { decodeAddress } from "@polkadot/keyring";
 
-import { parachainConfig } from "./parachainConfig";
+import { parachainConfigs } from "./parachainConfigs";
 
 import { formatBalance } from "@/utils/formatting";
 import { PendingTransferAction, Transfer } from "@/store/transferHistory";
@@ -61,7 +61,9 @@ export function onSubmit({
     track("Validate Send", data);
 
     try {
-      if (tokenMetadata == null) throw Error(`No erc20 token metadata.`);
+      if (tokenMetadata == null) {
+        throw Error(`No erc20 token metadata.`);
+      }
 
       const amountInSmallestUnit = parseAmount(data.amount, tokenMetadata);
       if (amountInSmallestUnit === 0n) {
@@ -97,15 +99,19 @@ export function onSubmit({
         return;
       }
 
-      if (source.id !== data.source)
+      if (source.id !== data.source) {
         throw Error(
           `Invalid form state: source mismatch ${source.id} and ${data.source}.`,
         );
-      if (destination.id !== data.destination)
+      }
+      if (destination.id !== data.destination) {
         throw Error(
           `Invalid form state: destination mismatch ${destination.id} and ${data.destination}.`,
         );
-      if (context === null) throw Error(`Context not configured.`);
+      }
+      if (context === null) {
+        throw Error(`Context not configured.`);
+      }
 
       setBusyMessage("Validating...");
 
@@ -229,13 +235,18 @@ async function handleSubstrateToEthereumTransfer({
   setError: Dispatch<SetStateAction<ErrorInfo | null>>;
   setBusyMessage: Dispatch<SetStateAction<string>>;
 }): Promise<Transfer> {
-  if (destination.type !== "ethereum")
+  if (destination.type !== "ethereum") {
     throw Error(`Invalid form state: destination type mismatch.`);
-  if (source.paraInfo === undefined)
+  }
+  if (source.paraInfo === undefined) {
     throw Error(`Invalid form state: source does not have parachain info.`);
-  if (polkadotAccount === null) throw Error(`Polkadot Wallet not connected.`);
-  if (polkadotAccount.address !== data.sourceAccount)
+  }
+  if (polkadotAccount === null) {
+    throw Error(`Polkadot Wallet not connected.`);
+  }
+  if (polkadotAccount.address !== data.sourceAccount) {
     throw Error(`Source account mismatch.`);
+  }
 
   const walletSigner = {
     address: polkadotAccount.address,
@@ -337,17 +348,25 @@ async function handleEthereumToSubstrateTransfer({
   setError: Dispatch<SetStateAction<ErrorInfo | null>>;
   setBusyMessage: Dispatch<SetStateAction<string>>;
 }): Promise<Transfer> {
-  if (destination.type !== "substrate")
+  if (destination.type !== "substrate") {
     throw Error(`Invalid form state: destination type mismatch.`);
-  if (destination.paraInfo === undefined)
+  }
+  if (destination.paraInfo === undefined) {
     throw Error(`Invalid form state: destination does not have parachain id.`);
-  if (ethereumProvider === null) throw Error(`Ethereum Wallet not connected.`);
-  if (ethereumAccount === null) throw Error(`Wallet account not selected.`);
-  if (ethereumAccount !== data.sourceAccount)
+  }
+  if (ethereumProvider === null) {
+    throw Error(`Ethereum Wallet not connected.`);
+  }
+  if (ethereumAccount === null) {
+    throw Error(`Wallet account not selected.`);
+  }
+  if (ethereumAccount !== data.sourceAccount) {
     throw Error(`Selected account does not match source data.`);
+  }
   const signer = await ethereumProvider.getSigner();
-  if (signer.address.toLowerCase() !== data.sourceAccount.toLowerCase())
+  if (signer.address.toLowerCase() !== data.sourceAccount.toLowerCase()) {
     throw Error(`Source account mismatch.`);
+  }
   const plan = await toPolkadot.validateSend(
     context,
     signer,
@@ -431,31 +450,37 @@ export async function submitParachainToAssetHub({
   setError: Dispatch<SetStateAction<ErrorInfo | null>>;
   setBusyMessage: Dispatch<SetStateAction<string>>;
 }): Promise<any> {
-  const { pallet } = parachainConfig[source.name];
-  if (source.type !== "substrate")
+  const { pallet } = parachainConfigs[source.name];
+  if (source.type !== "substrate") {
     throw Error(`Invalid form state: source type mismatch.`);
+  }
   if (!source.paraInfo) {
     throw Error(`Invalid form state: source does not have parachain id.`);
   }
-  if (destination.type !== "substrate")
+  if (destination.type !== "substrate") {
     throw Error(`Invalid form state: destination type mismatch.`);
-  if (destination.paraInfo === undefined)
+  }
+  if (destination.paraInfo === undefined) {
     throw Error(`Invalid form state: destination does not have parachain id.`);
-
+  }
   const parachainApi = context.polkadot.api.parachains[source.paraInfo?.paraId];
 
-  const beneficiary = {
+  const pathToBeneficiary = {
     V3: {
       parents: 0,
       interior: { X1: { AccountId32: { id: data.beneficiary } } },
     },
   };
-  const tx = parachainApi.tx[pallet].switch(amountInSmallestUnit, beneficiary);
+
+  const tx = parachainApi.tx[pallet].switch(
+    amountInSmallestUnit,
+    pathToBeneficiary,
+  );
 
   if (polkadotAccount === null) {
     setError({
       title: "Polkadot account not found",
-      description: "The account used to sign the transaction wasn'",
+      description: "The account used to sign the transaction was not provided.",
       errors: [],
     });
     throw Error(`Polkadot account not connected.`);
@@ -603,16 +628,19 @@ export async function submitAssetHubToParachain({
   setError: Dispatch<SetStateAction<ErrorInfo | null>>;
   setBusyMessage: Dispatch<SetStateAction<string>>;
 }): Promise<ISubmittableResult | Transfer> {
-  const { pallet, parachainId } = parachainConfig[source.name];
-  if (source.type !== "substrate")
+  const { pallet, parachainId } = parachainConfigs[source.name];
+  if (source.type !== "substrate") {
     throw Error(`Invalid form state: source type mismatch.`);
+  }
   if (!source.paraInfo) {
     throw Error(`Invalid form state: source does not have parachain id.`);
   }
-  if (destination.type !== "substrate")
+  if (destination.type !== "substrate") {
     throw Error(`Invalid form state: destination type mismatch.`);
-  if (destination.paraInfo === undefined)
+  }
+  if (destination.paraInfo === undefined) {
     throw Error(`Invalid form state: destination does not have parachain id.`);
+  }
 
   const assetHubApi = context.polkadot.api.assetHub;
 
@@ -623,11 +651,10 @@ export async function submitAssetHubToParachain({
 
   const switchPair = await assetHubApi.query[pallet].switchPair();
   const remoteAssetId = (switchPair as any).unwrap().remoteAssetId.toJSON().v3;
-  const beneficiary = {
+  const pathToBeneficiary = {
     parents: 0,
     interior: { X1: { AccountId32: { id: decodeAddress(data.beneficiary) } } },
   };
-
   const pathToParachain = {
     parents: 1,
     interior: {
@@ -646,7 +673,16 @@ export async function submitAssetHubToParachain({
     "LocalReserve",
     { V3: remoteAssetId },
     "LocalReserve",
-    { V3: [{ DepositAsset: { assets: { Wild: "All" }, beneficiary } }] },
+    {
+      V3: [
+        {
+          DepositAsset: {
+            assets: { Wild: "All" },
+            beneficiary: pathToBeneficiary,
+          },
+        },
+      ],
+    },
     "Unlimited",
   );
 
