@@ -12,17 +12,19 @@ interface Entry {
   endpoint: string;
   pallet: string;
   destination: Destination;
+  parachainId: number;
 }
 
-interface Config {
+interface ParaConfig {
   [key: string]: Entry;
 }
 
-export const parachainConfig: Config = {
+export const parachainConfig: ParaConfig = {
   Kilt: {
     name: "Kilt",
     endpoint: "wss://kilt.dotters.network",
     pallet: "assetSwitchPool1",
+    parachainId: 2086,
     destination: {
       parents: 1,
       interior: {
@@ -36,6 +38,7 @@ export const parachainConfig: Config = {
     name: "Rilt",
     endpoint: "wss://rilt.kilt.io",
     pallet: "assetSwitchPool1",
+    parachainId: 4504,
     destination: {
       parents: 1,
       interior: {
