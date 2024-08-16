@@ -459,7 +459,9 @@ export default function History() {
   const hashItem = useWindowHash();
 
   useEffect(() => {
-    if (transfers === null) return;
+    if (transfers === null) {
+      return;
+    }
     setTransferHistoryCache(transfers);
   }, [transfers, setTransferHistoryCache]);
 
@@ -500,7 +502,9 @@ export default function History() {
         transfer.info.sourceAddress,
         transfer.info.beneficiaryAddress,
       );
-      if (!showGlobal && !transfer.isWalletTransaction) continue;
+      if (!showGlobal && !transfer.isWalletTransaction) {
+        continue;
+      }
 
       allTransfers.push(transfer);
     }
