@@ -11,6 +11,7 @@ import {
 import { polkadotAccountAtom, polkadotAccountsAtom } from "@/store/polkadot";
 import {
   assetErc20MetaDataAtom,
+  parachainsChainNativeAssetAtom,
   relayChainNativeAssetAtom,
   snowbridgeContextAtom,
   snowbridgeEnvironmentAtom,
@@ -63,8 +64,12 @@ import { updateBalance, parseAmount } from "@/utils/balances";
 
 import { doApproveSpend } from "@/utils/doApproveSpend";
 import { doDepositAndApproveWeth } from "@/utils/doDepositAndApproveWeth";
-import { FormData, ErrorInfo, AccountInfo, AppRouter } from "@/utils/types";
-import { onSubmit } from "@/utils/onSubmit";
+import { FormData, ErrorInfo, AccountInfo } from "@/utils/types";
+import {
+  onSubmit,
+  submitAssetHubToParachain,
+  submitParachainToAssetHub,
+} from "@/utils/onSubmit";
 
 export const validateOFAC = async (
   data: FormData,
@@ -123,6 +128,8 @@ export const TransferForm: FC = () => {
   const ethereumChainId = useAtomValue(ethereumChainIdAtom);
   const context = useAtomValue(snowbridgeContextAtom);
   const assetHubNativeToken = useAtomValue(relayChainNativeAssetAtom);
+  const parachainsNativeToken = useAtomValue(parachainsChainNativeAssetAtom);
+
   const assetErc20MetaData = useAtomValue(assetErc20MetaDataAtom);
   const ethereumProvider = useAtomValue(ethersProviderAtom);
   const appRouter = useRouter();
@@ -165,6 +172,38 @@ export const TransferForm: FC = () => {
       amount: "0.0",
     },
   });
+
+  const handleAssetHubToParachain = async () => {
+    if (!context) return;
+    if (!tokenMetadata) return;
+    const formData = form.getValues();
+    await submitAssetHubToParachain({
+      context,
+      polkadotAccount,
+      source,
+      destination,
+      data: formData,
+      amountInSmallestUnit: parseAmount(formData.amount, tokenMetadata),
+      setError,
+      setBusyMessage,
+    });
+  };
+  const handleParachainToAssetHub = async () => {
+    if (!context) return;
+    if (!tokenMetadata) return;
+    const formData = form.getValues();
+
+    await submitParachainToAssetHub({
+      context,
+      polkadotAccount,
+      source,
+      destination,
+      data: formData,
+      amountInSmallestUnit: parseAmount(formData.amount, tokenMetadata),
+      setError,
+      setBusyMessage,
+    });
+  };
 
   useEffect(() => {
     if (context == null) return;
