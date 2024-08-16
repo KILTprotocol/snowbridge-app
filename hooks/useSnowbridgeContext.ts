@@ -28,6 +28,8 @@ const connectSnowbridgeContext = async (
     [
       context.ethereum.api.getNetwork(),
       assets.parachainNativeAsset(context.polkadot.api.relaychain),
+      assets.parachainNativeAsset(context.polkadot.api.parachains[2086]),
+      assets.parachainNativeAsset(context.polkadot.api.parachains[4504]),
       Promise.all(
         tokens.map((t) =>
           assets

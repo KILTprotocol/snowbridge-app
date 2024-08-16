@@ -1,3 +1,4 @@
+import { parachainConfig } from "@/utils/parachainConfig";
 import { u8aToHex } from "@polkadot/util";
 import { blake2AsU8a, encodeAddress } from "@polkadot/util-crypto";
 import {
@@ -193,7 +194,7 @@ export async function createContext(
   ethereumProvider: AbstractProvider,
   { config }: SnowbridgeEnvironment,
 ) {
-  return await contextFactory({
+  return contextFactory({
     ethereum: {
       execution_url: ethereumProvider,
       beacon_url: config.BEACON_HTTP_API,
@@ -205,7 +206,11 @@ export async function createContext(
         assetHub: process.env.NEXT_PUBLIC_ASSET_HUB_URL ?? config.ASSET_HUB_URL,
         relaychain:
           process.env.NEXT_PUBLIC_RELAY_CHAIN_URL ?? config.RELAY_CHAIN_URL,
-        parachains: config.PARACHAINS,
+        parachains: [
+          ...config.PARACHAINS,
+          parachainConfig.Kilt.endpoint,
+          parachainConfig.Rilt.endpoint,
+        ],
       },
     },
     appContracts: {
