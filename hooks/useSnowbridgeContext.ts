@@ -1,5 +1,6 @@
 import {
   assetErc20MetaDataAtom,
+  parachainsChainNativeAssetAtom,
   relayChainNativeAssetAtom,
   snowbridgeContextAtom,
   snowbridgeEnvironmentAtom,
@@ -24,22 +25,40 @@ const connectSnowbridgeContext = async (
         .map((l) => l.address.toLowerCase()),
     ),
   ];
-  const [network, relayChainNativeToken, assetMetadataList] = await Promise.all(
-    [
-      context.ethereum.api.getNetwork(),
-      assets.parachainNativeAsset(context.polkadot.api.relaychain),
-      assets.parachainNativeAsset(context.polkadot.api.parachains[2086]),
-      assets.parachainNativeAsset(context.polkadot.api.parachains[4504]),
-      Promise.all(
-        tokens.map((t) =>
-          assets
-            .assetErc20Metadata(context, t)
-            .then((m) => ({ token: t, metadata: m }))
-            .catch((_) => null),
-        ),
-      ),
-    ],
-  );
+
+  const [
+    network,
+    relayChainNativeToken,
+    assetMetadataList,
+    parachainsNativeToken,
+  ] = await Promise.all([
+    context.ethereum.api.getNetwork(),
+    assets.parachainNativeAsset(context.polkadot.api.relaychain),
+    Promise.all(
+      tokens.map(async (t) => {
+        try {
+          const metadata = await assets.assetErc20Metadata(context, t);
+          return { token: t, metadata };
+        } catch (error) {
+          console.error(`Failed to fetch metadata for token: ${t}`, error);
+          return null;
+        }
+      }),
+    ),
+    Promise.all([
+      await assets.parachainNativeAsset(context.polkadot.api.parachains[2086]),
+      await assets.parachainNativeAsset(context.polkadot.api.parachains[4504]),
+    ]),
+  ]);
+  const kiltMetada = {
+    token: "kilt",
+    metadata: {
+      name: "kilt",
+      symbol: parachainsNativeToken[0].tokenSymbol,
+      decimals: BigInt(parachainsNativeToken[0].tokenDecimal),
+    },
+  };
+  assetMetadataList.push(kiltMetada);
 
   const assetMetadata: { [tokenAddress: string]: assets.ERC20Metadata } = {};
   assetMetadataList
@@ -50,6 +69,7 @@ const connectSnowbridgeContext = async (
     context,
     chainId: Number(network.chainId.toString()),
     relayChainNativeToken,
+    parachainsNativeToken,
     assetMetadata,
   };
 };
@@ -61,6 +81,7 @@ export const useSnowbridgeContext = (): [
 ] => {
   const [context, setContext] = useAtom(snowbridgeContextAtom);
   const setRelayChainNativeAsset = useSetAtom(relayChainNativeAssetAtom);
+  const setParchainsNativeAsset = useSetAtom(parachainsChainNativeAssetAtom);
   const setAssetErc20MetaData = useSetAtom(assetErc20MetaDataAtom);
 
   const ethereumProvider = useAtomValue(ethersProviderAtom);
@@ -85,6 +106,7 @@ export const useSnowbridgeContext = (): [
         setLoading(false);
         setContext(result.context);
         setRelayChainNativeAsset(result.relayChainNativeToken);
+        setParchainsNativeAsset(result.parachainsNativeToken);
         setAssetErc20MetaData(result.assetMetadata);
       })
       .catch((error) => {
@@ -100,6 +122,7 @@ export const useSnowbridgeContext = (): [
     chainId,
     setRelayChainNativeAsset,
     setAssetErc20MetaData,
+    setParchainsNativeAsset,
     setContext,
     setError,
     setLoading,

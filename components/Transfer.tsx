@@ -177,8 +177,12 @@ export const TransferForm: FC = () => {
   });
 
   const handleAssetHubToParachain = async () => {
-    if (!context) return;
-    if (!tokenMetadata) return;
+    if (!context) {
+      return;
+    }
+    if (!tokenMetadata) {
+      return;
+    }
     const formData = form.getValues();
     await submitAssetHubToParachain({
       context,
@@ -192,8 +196,12 @@ export const TransferForm: FC = () => {
     });
   };
   const handleParachainToAssetHub = async () => {
-    if (!context) return;
-    if (!tokenMetadata) return;
+    if (!context) {
+      return;
+    }
+    if (!tokenMetadata) {
+      return;
+    }
     const formData = form.getValues();
 
     await submitParachainToAssetHub({

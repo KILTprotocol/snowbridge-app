@@ -9,13 +9,57 @@ import {
   contextFactory,
   Context,
   utils,
+  addParachainConnection,
+  assets,
 } from "@snowbridge/api";
-import { SnowbridgeEnvironment } from "@snowbridge/api/dist/environment";
+import {
+  SnowbridgeEnvironment,
+  TransferLocation,
+} from "@snowbridge/api/dist/environment";
 import {
   BeefyClient__factory,
   IGateway__factory,
 } from "@snowbridge/contract-types";
 import { AbstractProvider, AlchemyProvider } from "ethers";
+
+async function addLocation(env: environment.SnowbridgeEnvironment) {
+  const { destinationIds, erc20tokensReceivable } = env.locations[1];
+  // await addParachainConnection(parachainConfig.Kilt.endpoint);
+  const { paraId, api } = await addParachainConnection(
+    parachainConfigs.Rilt.endpoint,
+  );
+  const { tokenSymbol, tokenDecimal } = await assets.parachainNativeAsset(api);
+  destinationIds.push("kilt", "rilt");
+
+  erc20tokensReceivable.push({
+    id: "WKILT",
+    address: "0xb150865f2fcc768a30c7cd7505bc5652766f7bcc",
+    minimumTransferAmount: 15000000000000n,
+  });
+
+  const location: TransferLocation = {
+    id: "rilt",
+    name: "RILT",
+    type: "substrate",
+    destinationIds: ["assethub"],
+    paraInfo: {
+      paraId: paraId,
+      destinationFeeDOT: 0n,
+      skipExistentialDepositCheck: false,
+      addressType: "32byte",
+      decimals: tokenDecimal,
+      maxConsumers: 16,
+    },
+    erc20tokensReceivable: [
+      {
+        id: tokenSymbol,
+        address: "0xb150865f2fcc768a30c7cd7505bc5652766f7bcc",
+        minimumTransferAmount: 15000000000000n,
+      },
+    ],
+  };
+  env.locations.push(location);
+}
 
 export const SKIP_LIGHT_CLIENT_UPDATES = true;
 export const HISTORY_IN_SECONDS = 60 * 60 * 24 * 7 * 2; // 2 Weeks
@@ -38,6 +82,7 @@ export function getEnvironment() {
       `NEXT_PUBLIC_SNOWBRIDGE_ENV configured for unknown environment '${envName}'`,
     );
   }
+  addLocation(env);
   return env;
 }
 
