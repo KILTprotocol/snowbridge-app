@@ -143,8 +143,8 @@ export const TransferForm: FC = () => {
   const [source, setSource] = useState(snowbridgeEnvironment.locations[0]);
   const [sourceAccount, setSourceAccount] = useState<string>();
   const [destinations, setDestinations] = useState(
-    source.destinationIds.map(
-      (d) => snowbridgeEnvironment.locations.find((s) => d === s.id)!,
+    snowbridgeEnvironment.locations.filter(({ id }) =>
+      source.destinationIds.includes(id),
     ),
   );
   const [destination, setDestination] = useState(destinations[0]);
