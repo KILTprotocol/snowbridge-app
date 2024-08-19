@@ -1,8 +1,8 @@
 // Next.js serverless options
-export const fetchCache = "default-no-store"; // Dont cache fetches unless asked.
+export const fetchCache = "default-no-store"; // Don't cache fetches unless asked.
 export const dynamic = "force-dynamic"; // Always run dynamically
 export const revalidate = 120; // Keep cache for 2 minutes
-export const maxDuration = 90; // Timout adter
+export const maxDuration = 90; // Timeout after
 
 import {
   createContext,
