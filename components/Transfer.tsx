@@ -614,6 +614,7 @@ export const TransferForm: FC = () => {
                   form,
                   refreshHistory,
                   addPendingTransaction: transfersPendingLocal,
+                  snowbridgeEnvironment,
                 }),
               )}
               className="space-y-2"

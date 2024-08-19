@@ -42,6 +42,7 @@ export function onSubmit({
   form,
   refreshHistory,
   addPendingTransaction,
+  snowbridgeEnvironment,
 }: {
   context: Context | null;
   source: environment.TransferLocation;
@@ -56,6 +57,7 @@ export function onSubmit({
   form: UseFormReturn<FormData>;
   refreshHistory: () => void;
   addPendingTransaction: (_: PendingTransferAction) => void;
+  snowbridgeEnvironment: environment.SnowbridgeEnvironment;
 }): (data: FormData) => Promise<void> {
   return async (data) => {
     track("Validate Send", data);
@@ -116,8 +118,8 @@ export function onSubmit({
       setBusyMessage("Validating...");
 
       let transfer: Transfer;
-      switch (source.type) {
-        case "substrate": {
+      switch (decideCase(source, destination, snowbridgeEnvironment)) {
+        case "assetHubToEthereum": {
           transfer = await handleSubstrateToEthereumTransfer({
             context,
             source,
@@ -130,7 +132,7 @@ export function onSubmit({
           });
           break;
         }
-        case "ethereum": {
+        case "ethereumToAssetHub": {
           transfer = await handleEthereumToSubstrateTransfer({
             context,
             destination,
@@ -214,6 +216,46 @@ export function onSubmit({
       });
     }
   };
+}
+
+function decideCase(
+  source: environment.TransferLocation,
+  destination: environment.TransferLocation,
+  snowbridgeEnvironment: environment.SnowbridgeEnvironment,
+):
+  | "ethereumToAssetHub"
+  | "assetHubToEthereum"
+  | "assetHubToParachain"
+  | "parachainToAssetHub" {
+  function isAssetHub(blockchain: environment.TransferLocation): boolean {
+    return (
+      blockchain.paraInfo?.paraId ===
+      snowbridgeEnvironment.config.ASSET_HUB_PARAID
+    );
+  }
+
+  if (source.type === "ethereum" && isAssetHub(destination)) {
+    return "ethereumToAssetHub";
+  }
+  if (isAssetHub(source)) {
+    if (destination.type === "ethereum") {
+      return "assetHubToEthereum";
+    }
+    if (destination.type === "substrate" && !isAssetHub(destination)) {
+      return "assetHubToParachain";
+    }
+  }
+  if (
+    source.type === "substrate" &&
+    !isAssetHub(source) &&
+    isAssetHub(destination)
+  ) {
+    return "parachainToAssetHub";
+  }
+
+  throw new Error(
+    "Invalid combination of source and destination for transfer.",
+  );
 }
 
 async function handleSubstrateToEthereumTransfer({
