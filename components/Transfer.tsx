@@ -67,8 +67,8 @@ import { doDepositAndApproveWeth } from "@/utils/doDepositAndApproveWeth";
 import { FormData, ErrorInfo, AccountInfo } from "@/utils/types";
 import {
   onSubmit,
-  submitAssetHubToParachain,
-  submitParachainToAssetHub,
+  submitAssetHubToParachainTransfer,
+  submitParachainToAssetHubTransfer,
 } from "@/utils/onSubmit";
 
 /** The Office of Foreign Assets Control is a financial intelligence and enforcement agency of the Treasury Department of the United States of America.
@@ -184,7 +184,7 @@ export const TransferForm: FC = () => {
       return;
     }
     const formData = form.getValues();
-    await submitAssetHubToParachain({
+    await submitAssetHubToParachainTransfer({
       context,
       polkadotAccount,
       source,
@@ -204,7 +204,7 @@ export const TransferForm: FC = () => {
     }
     const formData = form.getValues();
 
-    await submitParachainToAssetHub({
+    await submitParachainToAssetHubTransfer({
       context,
       polkadotAccount,
       source,

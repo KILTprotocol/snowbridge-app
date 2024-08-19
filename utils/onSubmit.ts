@@ -120,7 +120,7 @@ export function onSubmit({
       let transfer: Transfer;
       switch (decideCase(source, destination, snowbridgeEnvironment)) {
         case "assetHubToEthereum": {
-          transfer = await handleAssetHubToEthereumTransfer({
+          transfer = await submitAssetHubToEthereumTransfer({
             context,
             source,
             destination,
@@ -133,7 +133,7 @@ export function onSubmit({
           break;
         }
         case "ethereumToAssetHub": {
-          transfer = await handleEthereumToAssetHubTransfer({
+          transfer = await submitEthereumToAssetHubTransfer({
             context,
             destination,
             ethereumProvider,
@@ -258,7 +258,7 @@ function decideCase(
   );
 }
 
-async function handleAssetHubToEthereumTransfer({
+async function submitAssetHubToEthereumTransfer({
   context,
   source,
   destination,
@@ -371,7 +371,7 @@ async function handleAssetHubToEthereumTransfer({
     },
   };
 }
-async function handleEthereumToAssetHubTransfer({
+async function submitEthereumToAssetHubTransfer({
   context,
   destination,
   ethereumAccount,
@@ -473,7 +473,7 @@ async function handleEthereumToAssetHubTransfer({
   };
 }
 
-export async function submitParachainToAssetHub({
+export async function submitParachainToAssetHubTransfer({
   context,
   polkadotAccount,
   source,
@@ -651,7 +651,7 @@ export async function submitParachainToAssetHub({
   // };
 }
 
-export async function submitAssetHubToParachain({
+export async function submitAssetHubToParachainTransfer({
   context,
   polkadotAccount,
   source,
