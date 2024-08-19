@@ -432,7 +432,7 @@ export const TransferForm: FC = () => {
         position: "bottom-center",
         closeButton: true,
         id: "deposit_approval_result",
-        description: "Token spend allowance approval was succesful.",
+        description: "Token spend allowance approval was successful.",
         important: true,
       });
       updateBalance(
@@ -504,7 +504,7 @@ export const TransferForm: FC = () => {
         position: "bottom-center",
         closeButton: true,
         id: "approval_result",
-        description: "Token spend allowance approval was succesful.",
+        description: "Token spend allowance approval was successful.",
         important: true,
       });
       updateBalance(
