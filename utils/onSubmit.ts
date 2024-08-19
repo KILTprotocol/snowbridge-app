@@ -120,7 +120,7 @@ export function onSubmit({
       let transfer: Transfer;
       switch (decideCase(source, destination, snowbridgeEnvironment)) {
         case "assetHubToEthereum": {
-          transfer = await handleSubstrateToEthereumTransfer({
+          transfer = await handleAssetHubToEthereumTransfer({
             context,
             source,
             destination,
@@ -133,7 +133,7 @@ export function onSubmit({
           break;
         }
         case "ethereumToAssetHub": {
-          transfer = await handleEthereumToSubstrateTransfer({
+          transfer = await handleEthereumToAssetHubTransfer({
             context,
             destination,
             ethereumProvider,
@@ -258,7 +258,7 @@ function decideCase(
   );
 }
 
-async function handleSubstrateToEthereumTransfer({
+async function handleAssetHubToEthereumTransfer({
   context,
   source,
   destination,
@@ -371,7 +371,7 @@ async function handleSubstrateToEthereumTransfer({
     },
   };
 }
-async function handleEthereumToSubstrateTransfer({
+async function handleEthereumToAssetHubTransfer({
   context,
   destination,
   ethereumAccount,
