@@ -145,10 +145,11 @@ export function onSubmit({
           });
           break;
         }
-        // case "parachainToAsset": {
-        //   transfer = await submitParachainToAssetHub({
+        // case "assetHubToParachain": {
+        //   transfer = await submitAssetHubToParachainTransfer({
         //     context,
         //     source,
+        //     destination,
         //     polkadotAccount,
         //     data,
         //     amountInSmallestUnit,
@@ -157,10 +158,11 @@ export function onSubmit({
         //   });
         //   break;
         // }
-        // case "assetToParachain": {
-        //   transfer = await submitAssetHubToParachain({
+        // case "parachainToAssetHub": {
+        //   transfer = await submitParachainToAssetHubTransfer({
         //     context,
         //     source,
+        //     destination,
         //     polkadotAccount,
         //     data,
         //     amountInSmallestUnit,
@@ -670,6 +672,7 @@ export async function submitAssetHubToParachainTransfer({
   setError: Dispatch<SetStateAction<ErrorInfo | null>>;
   setBusyMessage: Dispatch<SetStateAction<string>>;
 }): Promise<ISubmittableResult | Transfer> {
+  // }): Promise<Transfer> {
   const { pallet, parachainId } = parachainConfigs[source.name];
   if (source.type !== "substrate") {
     throw Error(`Invalid form state: source type mismatch.`);
