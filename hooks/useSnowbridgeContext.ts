@@ -25,7 +25,7 @@ const connectSnowbridgeContext = async (
         .map((l) => l.address.toLowerCase()),
     ),
   ];
-
+  const dummy = Object.keys(context.polkadot.api.parachains);
   const [
     network,
     relayChainNativeToken,
@@ -46,10 +46,14 @@ const connectSnowbridgeContext = async (
       }),
     ),
 
-    Promise.all([
-      await assets.parachainNativeAsset(context.polkadot.api.parachains[2086]),
-      await assets.parachainNativeAsset(context.polkadot.api.parachains[4504]),
-    ]),
+    Promise.all(
+      // The endpoints were added to the env.config and ergo to the context on createContext()
+      Object.values(context.polkadot.api.parachains).map(
+        assets.parachainNativeAsset,
+      ),
+      // await assets.parachainNativeAsset(context.polkadot.api.parachains[2086]),
+      // await assets.parachainNativeAsset(context.polkadot.api.parachains[4504]),
+    ),
   ]);
 
   // Kilt is not a ERC20 Token

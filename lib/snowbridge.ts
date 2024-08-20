@@ -12,42 +12,76 @@ import {
   addParachainConnection,
   assets,
 } from "@snowbridge/api";
-import {
-  SnowbridgeEnvironment,
-  TransferLocation,
-} from "@snowbridge/api/dist/environment";
+import { SnowbridgeEnvironment } from "@snowbridge/api/dist/environment";
 import {
   BeefyClient__factory,
   IGateway__factory,
 } from "@snowbridge/contract-types";
 import { AbstractProvider, AlchemyProvider } from "ethers";
 
-async function addLocation(env: environment.SnowbridgeEnvironment) {
+async function addParachains(env: environment.SnowbridgeEnvironment) {
   const assetHubLocation = env.locations.find(({ id }) => id === "assethub");
   if (!assetHubLocation) {
     throw new Error(
-      "Could not find the asset hub configuration object inside of the chosen environment.",
+      `Could not find the asset hub configuration object inside of the chosen environment "${env.name}."`,
     );
   }
-  const { destinationIds, erc20tokensReceivable } = assetHubLocation;
-  // await addParachainConnection(parachainConfig.Kilt.endpoint);
-  const { paraId, api } = await addParachainConnection(
-    parachainConfigs.Rilt.endpoint,
+  const pertinentParaConfigs = Object.values(parachainConfigs).filter(
+    ({ snowEnv, location }) =>
+      snowEnv === env.name &&
+      !assetHubLocation.destinationIds.includes(location.id),
   );
-  const foo = await assets.parachainNativeAsset(api);
 
-  const { tokenSymbol, tokenDecimal } = await assets.parachainNativeAsset(api);
-  console.log("tokenSymbol: ", tokenSymbol);
-  console.log("tokenDecimal: ", tokenDecimal);
-  destinationIds.push("rilt");
+  if (pertinentParaConfigs.length == 0) {
+    console.log(
+      `No suitable parachains to add to the given snowbridge environment "${env.name}".`,
+    );
+    return;
+  }
 
-  erc20tokensReceivable.push({
-    id: tokenSymbol,
-    address: "0xb150865f2fcc768a30c7cd7505bc5652766f7bcc",
-    minimumTransferAmount: 15000000000000n,
+  // await addParachainConnection(parachainConfig.Kilt.endpoint);
+
+  // this is already called on the context factory
+  // const { paraId, api } = await addParachainConnection(
+  //   parachainConfigs.Rilt.endpoint,
+  // );
+
+  // add the parachains as destinations on the assetHub location
+  // and the corresponding tokens as receivable
+
+  pertinentParaConfigs.forEach((paraConfig) => {
+    assetHubLocation.destinationIds.push(paraConfig.location.id);
+    assetHubLocation.erc20tokensReceivable.push(
+      ...paraConfig.location.erc20tokensReceivable,
+    );
   });
 
-  env.locations.push(parachainConfigs.Rilt.location);
+  // const { tokenSymbol, tokenDecimal } = await assets.parachainNativeAsset(api);
+  // console.log("tokenSymbol: ", tokenSymbol);
+  // console.log("tokenDecimal: ", tokenDecimal);
+  // destinationIds.push("rilt");
+
+  // erc20tokensReceivable.push({
+  //   id: tokenSymbol,
+  //   address: "0xb150865f2fcc768a30c7cd7505bc5652766f7bcc",
+  //   minimumTransferAmount: 15000000000000n,
+  // });
+
+  env.locations.push(...pertinentParaConfigs.map((para) => para.location));
+  env.config.PARACHAINS.push(
+    ...pertinentParaConfigs.map((para) => para.endpoint),
+  );
+
+  // TODO: delete this log later
+  // during developing only:
+  console.log(
+    "SnowbridgeEnvironment after adding parachains: ",
+    JSON.stringify(
+      env,
+      (_, v) => (typeof v === "bigint" ? v.toString() : v), // replacer of bigInts
+      2,
+    ),
+  );
 }
 
 export const SKIP_LIGHT_CLIENT_UPDATES = true;
@@ -63,14 +97,6 @@ export function getEnvironmentName() {
   return name;
 }
 
-const snowbridgeEnvironmentNames = Object.keys(environment.SNOWBRIDGE_ENV);
-
-type SnowbridgeEnvironmentNames = (typeof snowbridgeEnvironmentNames)[number];
-
-let ice: SnowbridgeEnvironmentNames;
-
-ice = "hdhd";
-
 export function getEnvironment() {
   const envName = getEnvironmentName();
   const env = environment.SNOWBRIDGE_ENV[envName];
@@ -79,7 +105,7 @@ export function getEnvironment() {
       `NEXT_PUBLIC_SNOWBRIDGE_ENV configured for unknown environment '${envName}'`,
     );
   }
-  addLocation(env);
+  addParachains(env);
   return env;
 }
 
