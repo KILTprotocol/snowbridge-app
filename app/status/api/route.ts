@@ -42,7 +42,11 @@ const getCachedBridgeStatus = unstable_cache(
       const status = await getBridgeStatus(context, env);
       return status;
     } catch (err) {
-      reportError(err);
+      if (typeof reportError == "function") {
+        reportError(err);
+      } else {
+        console.error(err);
+      }
       return Promise.resolve(null);
     }
   },

@@ -26,7 +26,11 @@ const getCachedTransferHistory = unstable_cache(
         HISTORY_IN_SECONDS,
       );
     } catch (err) {
-      reportError(err);
+      if (typeof reportError == "function") {
+        reportError(err);
+      } else {
+        console.error(err);
+      }
       return Promise.resolve([]);
     }
   },
