@@ -45,20 +45,23 @@ const connectSnowbridgeContext = async (
         }
       }),
     ),
+
     Promise.all([
       await assets.parachainNativeAsset(context.polkadot.api.parachains[2086]),
       await assets.parachainNativeAsset(context.polkadot.api.parachains[4504]),
     ]),
   ]);
-  const kiltMetada = {
-    token: "kilt",
-    metadata: {
-      name: "kilt",
-      symbol: parachainsNativeToken[0].tokenSymbol,
-      decimals: BigInt(parachainsNativeToken[0].tokenDecimal),
-    },
-  };
-  assetMetadataList.push(kiltMetada);
+
+  // Kilt is not a ERC20 Token
+  // const kiltMetada = {
+  //   token: "kilt",
+  //   metadata: {
+  //     name: "kilt",
+  //     symbol: parachainsNativeToken[0].tokenSymbol,
+  //     decimals: BigInt(parachainsNativeToken[0].tokenDecimal),
+  //   },
+  // };
+  // assetMetadataList.push(kiltMetada);
 
   const assetMetadata: { [tokenAddress: string]: assets.ERC20Metadata } = {};
   assetMetadataList

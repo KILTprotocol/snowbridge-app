@@ -253,8 +253,9 @@ export async function createContext(
           process.env.NEXT_PUBLIC_RELAY_CHAIN_URL ?? config.RELAY_CHAIN_URL,
         parachains: [
           ...config.PARACHAINS,
-          parachainConfigs.Kilt.endpoint,
-          parachainConfigs.Rilt.endpoint,
+          // TODO: add the endpoints to the env.config instead
+          // parachainConfigs.Kilt.endpoint,
+          // parachainConfigs.Rilt.endpoint,
         ],
       },
     },
