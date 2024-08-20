@@ -23,42 +23,31 @@ import {
 import { AbstractProvider, AlchemyProvider } from "ethers";
 
 async function addLocation(env: environment.SnowbridgeEnvironment) {
-  const { destinationIds, erc20tokensReceivable } = env.locations[1];
+  const assetHubLocation = env.locations.find(({ id }) => id === "assethub");
+  if (!assetHubLocation) {
+    throw new Error(
+      "Could not find the asset hub configuration object inside of the chosen environment.",
+    );
+  }
+  const { destinationIds, erc20tokensReceivable } = assetHubLocation;
   // await addParachainConnection(parachainConfig.Kilt.endpoint);
   const { paraId, api } = await addParachainConnection(
     parachainConfigs.Rilt.endpoint,
   );
+  const foo = await assets.parachainNativeAsset(api);
+
   const { tokenSymbol, tokenDecimal } = await assets.parachainNativeAsset(api);
-  destinationIds.push("kilt", "rilt");
+  console.log("tokenSymbol: ", tokenSymbol);
+  console.log("tokenDecimal: ", tokenDecimal);
+  destinationIds.push("rilt");
 
   erc20tokensReceivable.push({
-    id: "WKILT",
+    id: tokenSymbol,
     address: "0xb150865f2fcc768a30c7cd7505bc5652766f7bcc",
     minimumTransferAmount: 15000000000000n,
   });
 
-  const location: TransferLocation = {
-    id: "rilt",
-    name: "RILT",
-    type: "substrate",
-    destinationIds: ["assethub"],
-    paraInfo: {
-      paraId: paraId,
-      destinationFeeDOT: 0n,
-      skipExistentialDepositCheck: false,
-      addressType: "32byte",
-      decimals: tokenDecimal,
-      maxConsumers: 16,
-    },
-    erc20tokensReceivable: [
-      {
-        id: tokenSymbol,
-        address: "0xb150865f2fcc768a30c7cd7505bc5652766f7bcc",
-        minimumTransferAmount: 15000000000000n,
-      },
-    ],
-  };
-  env.locations.push(location);
+  env.locations.push(parachainConfigs.Rilt.location);
 }
 
 export const SKIP_LIGHT_CLIENT_UPDATES = true;
@@ -73,6 +62,14 @@ export function getEnvironmentName() {
   }
   return name;
 }
+
+const snowbridgeEnvironmentNames = Object.keys(environment.SNOWBRIDGE_ENV);
+
+type SnowbridgeEnvironmentNames = (typeof snowbridgeEnvironmentNames)[number];
+
+let ice: SnowbridgeEnvironmentNames;
+
+ice = "hdhd";
 
 export function getEnvironment() {
   const envName = getEnvironmentName();
