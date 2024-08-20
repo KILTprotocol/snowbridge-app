@@ -24,6 +24,7 @@ async function getContext() {
   }
   const env = getEnvironment();
 
+  // TODO: handle case of local chains!
   const alchemyKey = process.env.NEXT_PUBLIC_ALCHEMY_KEY;
   if (!alchemyKey) {
     throw Error("Missing Alchemy Key");
