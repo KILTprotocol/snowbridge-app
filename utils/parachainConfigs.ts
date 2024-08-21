@@ -1,8 +1,17 @@
+import { addParachainConnection } from "@snowbridge/api";
+import { parachainNativeAsset } from "@snowbridge/api/dist/assets";
 import {
   SnowbridgeEnvironment,
   TransferLocation,
   SNOWBRIDGE_ENV,
 } from "@snowbridge/api/dist/environment";
+import { ApiPromise, WsProvider } from "@polkadot/api";
+import {
+  getApi,
+  relaysOnChain,
+  getSnowEnvBasedOnRelayChain,
+} from "./relaysOnChain";
+// import { PolkadotPrimitivesV5PersistedValidationData } from '@kiltprotocol/augment-api/index';
 
 // const snowbridgeEnvironmentNames = Object.keys(SNOWBRIDGE_ENV) as Array<string>;
 // type SnowbridgeEnvironmentNames = (typeof snowbridgeEnvironmentNames)[number];
@@ -10,7 +19,8 @@ import {
 type SnowbridgeEnvironmentNames =
   | "local_e2e"
   | "rococo_sepolia"
-  | "polkadot_mainnet";
+  | "polkadot_mainnet"
+  | "unsupported_relaychain";
 
 interface ParaConfig {
   name: string;
@@ -85,3 +95,58 @@ export const parachainConfigs: RegisterOfParaConfigs = {
     },
   },
 };
+
+export async function buildParachainConfig(
+  endpoint: string,
+): Promise<ParaConfig> {
+  const { paraId, api: paraApi } = await addParachainConnection(endpoint);
+  const chainName = (await paraApi.rpc.system.chain()).toString();
+
+  /** The Snowbridge team decided to set the amount of the existential as the minimal transfer amount. */
+  const minimumTransferAmount = BigInt(
+    paraApi.consts.balances.existentialDeposit.toString(),
+  );
+  // const properties = await api.rpc.system.properties();
+  const { tokenDecimal, tokenSymbol } = await parachainNativeAsset(paraApi);
+
+  return {
+    name: chainName,
+    snowEnv: (await getSnowEnvBasedOnRelayChain(
+      paraApi,
+      SNOWBRIDGE_ENV,
+    )) as SnowbridgeEnvironmentNames,
+    endpoint: endpoint,
+    pallet: "assetSwitchPool1",
+    parachainId: paraId,
+    location: {
+      id: chainName.toLowerCase().replaceAll(/\s/, ""),
+      name: chainName,
+      type: "substrate",
+      destinationIds: ["assethub"],
+      paraInfo: {
+        paraId: paraId,
+        destinationFeeDOT: 0n,
+        skipExistentialDepositCheck: false,
+        addressType: "32byte",
+        decimals: tokenDecimal,
+        maxConsumers: 16,
+      },
+      erc20tokensReceivable: [
+        {
+          id: tokenSymbol,
+          address: "0xadd76ee7fb5b3d2d774b5fed4ac20b87f830db91", // not existent yet
+          minimumTransferAmount,
+        },
+      ],
+    },
+  };
+}
+
+// async function relaysOn(paraApi: ApiPromise) {
+//   const validationData = await paraApi.query.parachainSystem?.validationData();
+
+//   if (!validationData?.isEmpty) {
+//     throw new Error("This is not a parachain");
+//   }
+//   const { relayParentNumber, relayParentNumber } = validationData.unwrap();
+// }
