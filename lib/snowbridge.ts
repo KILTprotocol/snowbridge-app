@@ -19,7 +19,7 @@ import {
 } from "@snowbridge/contract-types";
 import { AbstractProvider, AlchemyProvider } from "ethers";
 
-async function addParachains(env: environment.SnowbridgeEnvironment) {
+function addParachains(env: environment.SnowbridgeEnvironment) {
   const assetHubLocation = env.locations.find(({ id }) => id === "assethub");
   if (!assetHubLocation) {
     throw new Error(
