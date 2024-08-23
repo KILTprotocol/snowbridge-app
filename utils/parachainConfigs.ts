@@ -33,75 +33,84 @@ interface ParaConfig {
   location: TransferLocation;
 }
 
-interface RegisterOfParaConfigs {
+export interface RegisterOfParaConfigs {
   [name: string]: ParaConfig;
 }
 
-export const parachainConfigs: RegisterOfParaConfigs = {
-  // Kilt on Polkadot
-  Kilt: {
-    name: "Kilt",
-    snowEnv: "polkadot_mainnet",
-    endpoint: "wss://kilt.dotters.network",
-    pallet: "assetSwitchPool1",
-    parachainId: 2086,
-    location: {
-      id: "kilt",
-      name: "KILT",
-      type: "substrate",
-      destinationIds: ["assethub"],
-      paraInfo: {
-        paraId: 2086,
-        destinationFeeDOT: 0n,
-        skipExistentialDepositCheck: false,
-        addressType: "32byte",
-        decimals: 15,
-        maxConsumers: 16,
-      },
-      erc20tokensReceivable: [
-        {
-          id: "KILT",
-          address: "0xadd76ee7fb5b3d2d774b5fed4ac20b87f830db91", // not existent yet
-          minimumTransferAmount: 1n,
-        },
-      ],
-    },
-  },
-  // Kilt on Rococo
-  Rilt: {
-    name: "Rilt",
-    snowEnv: "rococo_sepolia",
-    endpoint: "wss://rilt.kilt.io",
-    pallet: "assetSwitchPool1",
-    parachainId: 4504,
-    location: {
-      id: "rilt",
-      name: "RILT",
-      type: "substrate",
-      destinationIds: ["assethub"],
-      paraInfo: {
-        paraId: 4504,
-        destinationFeeDOT: 0n,
-        skipExistentialDepositCheck: false,
-        addressType: "32byte",
-        decimals: 15,
-        maxConsumers: 16,
-      },
-      erc20tokensReceivable: [
-        {
-          id: "RILT",
-          address: "0xadd76ee7fb5b3d2d774b5fed4ac20b87f830db91",
-          minimumTransferAmount: 1n,
-        },
-      ],
-    },
-  },
-};
+// export const parachainConfigs: RegisterOfParaConfigs = {
+//   // Kilt on Polkadot
+//   Kilt: {
+//     name: "Kilt",
+//     snowEnv: "polkadot_mainnet",
+//     endpoint: "wss://kilt.dotters.network",
+//     pallet: "assetSwitchPool1",
+//     parachainId: 2086,
+//     location: {
+//       id: "kilt",
+//       name: "KILT",
+//       type: "substrate",
+//       destinationIds: ["assethub"],
+//       paraInfo: {
+//         paraId: 2086,
+//         destinationFeeDOT: 0n,
+//         skipExistentialDepositCheck: false,
+//         addressType: "32byte",
+//         decimals: 15,
+//         maxConsumers: 16,
+//       },
+//       erc20tokensReceivable: [
+//         {
+//           id: "KILT",
+//           address: "0xadd76ee7fb5b3d2d774b5fed4ac20b87f830db91", // not existent yet
+//           minimumTransferAmount: 1n,
+//         },
+//       ],
+//     },
+//   },
+//   // Kilt on Rococo
+//   Rilt: {
+//     name: "Rilt",
+//     snowEnv: "rococo_sepolia",
+//     endpoint: "wss://rilt.kilt.io",
+//     pallet: "assetSwitchPool1",
+//     parachainId: 4504,
+//     location: {
+//       id: "rilt",
+//       name: "RILT",
+//       type: "substrate",
+//       destinationIds: ["assethub"],
+//       paraInfo: {
+//         paraId: 4504,
+//         destinationFeeDOT: 0n,
+//         skipExistentialDepositCheck: false,
+//         addressType: "32byte",
+//         decimals: 15,
+//         maxConsumers: 16,
+//       },
+//       erc20tokensReceivable: [
+//         {
+//           id: "RILT",
+//           address: "0xadd76ee7fb5b3d2d774b5fed4ac20b87f830db91",
+//           minimumTransferAmount: 1n,
+//         },
+//       ],
+//     },
+//   },
+// };
 
 export async function buildParachainConfig(
   endpoint: string,
-): Promise<ParaConfig> {
-  const { paraId, api: paraApi } = await addParachainConnection(endpoint);
+): Promise<ParaConfig | void> {
+  const paraApi = await getApi(endpoint);
+
+  if (!paraApi) {
+    console.log(`Could not connect to parachain API under "${endpoint}"`);
+    return;
+  }
+
+  const paraId = (
+    await paraApi.query.parachainInfo.parachainId()
+  ).toPrimitive() as number;
 
   // Get information about the token on it's native parachain
   const chainName = (await paraApi.rpc.system.chain()).toString();
@@ -109,6 +118,9 @@ export async function buildParachainConfig(
     paraApi,
     SNOWBRIDGE_ENV,
   )) as SnowbridgeEnvironmentNames;
+
+  //debugger:
+  console.log("snowBridgeEnvName: ", snowBridgeEnvName);
 
   /** The Snowbridge team decided to set the amount of the existential deposit as the minimal transfer amount. */
   const minimumTransferAmount = BigInt(
@@ -120,9 +132,15 @@ export async function buildParachainConfig(
   const addressType = await getAddressType(paraApi);
 
   // Get information about the wrapped erc20 token
-  const { api: assetHubApi } = await addParachainConnection(
-    SNOWBRIDGE_ENV[snowBridgeEnvName].config.ASSET_HUB_URL,
-  );
+  const assetHubEndpoint =
+    SNOWBRIDGE_ENV[snowBridgeEnvName].config.ASSET_HUB_URL;
+  const assetHubApi = await getApi(assetHubEndpoint);
+  if (!assetHubApi) {
+    console.log(
+      `Could not connect to assetHub API under "${assetHubEndpoint}"`,
+    );
+    return;
+  }
 
   const switchPalletName = "assetSwitchPool1"; // assumes that first pool is between native token and its erc20 wrapped counterpart
   const switchPair = await assetHubApi.query[switchPalletName].switchPair();

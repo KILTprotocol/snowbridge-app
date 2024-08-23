@@ -1,4 +1,7 @@
-import { parachainConfigs } from "@/utils/parachainConfigs";
+import {
+  RegisterOfParaConfigs,
+  buildParachainConfig,
+} from "@/utils/parachainConfigs";
 import { u8aToHex } from "@polkadot/util";
 import { blake2AsU8a, encodeAddress } from "@polkadot/util-crypto";
 import {
@@ -18,6 +21,28 @@ import {
   IGateway__factory,
 } from "@snowbridge/contract-types";
 import { AbstractProvider, AlchemyProvider } from "ethers";
+
+export const parachainConfigs: RegisterOfParaConfigs = {};
+
+export async function populateParachainConfigs() {
+  const paraNodes = process.env.PARACHAIN_ENDPOINTS?.split(";");
+
+  paraNodes?.forEach(async (endpoint) => {
+    const newConfig = await buildParachainConfig(endpoint);
+
+    // debugger:
+    console.log("newConfig: ", JSON.stringify(newConfig, null, 2));
+
+    if (!newConfig) {
+      return;
+    }
+    if (newConfig.name in parachainConfigs) {
+      // don't overwrite
+    } else {
+      parachainConfigs[newConfig.name] = newConfig;
+    }
+  });
+}
 
 function addParachains(env: environment.SnowbridgeEnvironment) {
   const assetHubLocation = env.locations.find(({ id }) => id === "assethub");

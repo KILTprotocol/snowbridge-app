@@ -3,8 +3,6 @@
 import { ApiPromise, WsProvider } from "@polkadot/api";
 import { decodeAddress } from "@polkadot/keyring";
 
-import { parachainConfigs } from "./parachainConfigs";
-
 import { formatBalance } from "@/utils/formatting";
 import { PendingTransferAction, Transfer } from "@/store/transferHistory";
 import { Signer as DotSigner } from "@polkadot/api/types";
@@ -27,6 +25,7 @@ import { parseAmount } from "@/utils/balances";
 import { AppRouter, FormData, ErrorInfo } from "@/utils/types";
 import { validateOFAC } from "@/components/Transfer";
 import { ISubmittableResult } from "@polkadot/types/types";
+import { parachainConfigs } from "@/lib/snowbridge";
 
 export function onSubmit({
   context,
