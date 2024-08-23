@@ -100,23 +100,35 @@ export async function buildParachainConfig(
   endpoint: string,
 ): Promise<ParaConfig> {
   const { paraId, api: paraApi } = await addParachainConnection(endpoint);
-  const chainName = (await paraApi.rpc.system.chain()).toString();
 
-  /** The Snowbridge team decided to set the amount of the existential as the minimal transfer amount. */
+  // Get information about the token on it's native parachain
+  const chainName = (await paraApi.rpc.system.chain()).toString();
+  const snowBridgeEnvName = (await getSnowEnvBasedOnRelayChain(
+    paraApi,
+    SNOWBRIDGE_ENV,
+  )) as SnowbridgeEnvironmentNames;
+
+  /** The Snowbridge team decided to set the amount of the existential deposit as the minimal transfer amount. */
   const minimumTransferAmount = BigInt(
     paraApi.consts.balances.existentialDeposit.toString(),
   );
   // const properties = await api.rpc.system.properties();
   const { tokenDecimal, tokenSymbol } = await parachainNativeAsset(paraApi);
 
+  // Get information about the wrapped erc20 token
+  const { api: assetHubApi } = await addParachainConnection(
+    SNOWBRIDGE_ENV[snowBridgeEnvName].config.ASSET_HUB_URL,
+  );
+
+  const switchPalletName = "assetSwitchPool1"; // assumes that first pool is between native token and its erc20 wrapped counterpart
+  const switchPair = await assetHubApi.query[switchPalletName].switchPair();
+  const remoteAssetId = (switchPair as any).unwrap().remoteAssetId.toJSON().v3;
+
   return {
     name: chainName,
-    snowEnv: (await getSnowEnvBasedOnRelayChain(
-      paraApi,
-      SNOWBRIDGE_ENV,
-    )) as SnowbridgeEnvironmentNames,
+    snowEnv: snowBridgeEnvName,
     endpoint: endpoint,
-    pallet: "assetSwitchPool1",
+    pallet: switchPalletName,
     parachainId: paraId,
     location: {
       id: chainName.toLowerCase().replaceAll(/\s/, ""),
@@ -133,8 +145,8 @@ export async function buildParachainConfig(
       },
       erc20tokensReceivable: [
         {
-          id: tokenSymbol,
-          address: "0xadd76ee7fb5b3d2d774b5fed4ac20b87f830db91", // not existent yet
+          id: "w" + tokenSymbol,
+          address: remoteAssetId,
           minimumTransferAmount,
         },
       ],
