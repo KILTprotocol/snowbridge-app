@@ -128,6 +128,9 @@ export async function buildParachainConfig(
   const switchPair = await assetHubApi.query[switchPalletName].switchPair();
   const remoteAssetId = (switchPair as any).unwrap().remoteAssetId.toJSON().v3;
 
+  paraApi.disconnect();
+  assetHubApi.disconnect();
+
   return {
     name: chainName,
     snowEnv: snowBridgeEnvName,
@@ -149,6 +152,7 @@ export async function buildParachainConfig(
       },
       erc20tokensReceivable: [
         {
+          // TODO: find a way to fetch
           id: "w" + tokenSymbol,
           address: remoteAssetId,
           minimumTransferAmount,
