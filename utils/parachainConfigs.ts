@@ -4,6 +4,7 @@ import {
   SnowbridgeEnvironment,
   TransferLocation,
   SNOWBRIDGE_ENV,
+  AddressType,
 } from "@snowbridge/api/dist/environment";
 import { ApiPromise, WsProvider } from "@polkadot/api";
 import {
@@ -11,6 +12,7 @@ import {
   relaysOnChain,
   getSnowEnvBasedOnRelayChain,
 } from "./relaysOnChain";
+import { TypeDefInfo } from "@polkadot/types";
 // import { PolkadotPrimitivesV5PersistedValidationData } from '@kiltprotocol/augment-api/index';
 
 // const snowbridgeEnvironmentNames = Object.keys(SNOWBRIDGE_ENV) as Array<string>;
@@ -115,6 +117,8 @@ export async function buildParachainConfig(
   // const properties = await api.rpc.system.properties();
   const { tokenDecimal, tokenSymbol } = await parachainNativeAsset(paraApi);
 
+  const addressType = await getAddressType(paraApi);
+
   // Get information about the wrapped erc20 token
   const { api: assetHubApi } = await addParachainConnection(
     SNOWBRIDGE_ENV[snowBridgeEnvName].config.ASSET_HUB_URL,
@@ -139,7 +143,7 @@ export async function buildParachainConfig(
         paraId: paraId,
         destinationFeeDOT: 0n,
         skipExistentialDepositCheck: false,
-        addressType: "32byte",
+        addressType: addressType,
         decimals: tokenDecimal,
         maxConsumers: 16,
       },
@@ -153,12 +157,25 @@ export async function buildParachainConfig(
     },
   };
 }
+async function getAddressType(api: ApiPromise): Promise<AddressType> {
+  // Assume that the first type defined in the runtime is the AccountId
+  const lookedUpType = api.registry.lookup.getTypeDef(0);
+  if (lookedUpType.type === "AccountId32") {
+    return "32byte";
+  }
 
-// async function relaysOn(paraApi: ApiPromise) {
-//   const validationData = await paraApi.query.parachainSystem?.validationData();
+  if (lookedUpType.type === "AccountId20") {
+    return "20byte";
+  }
 
-//   if (!validationData?.isEmpty) {
-//     throw new Error("This is not a parachain");
-//   }
-//   const { relayParentNumber, relayParentNumber } = validationData.unwrap();
-// }
+  if (lookedUpType.info === TypeDefInfo.VecFixed) {
+    const length = lookedUpType.length;
+    if (length === 20) {
+      return "20byte";
+    }
+    if (length === 32) {
+      return "32byte";
+    }
+  }
+  return "both";
+}
