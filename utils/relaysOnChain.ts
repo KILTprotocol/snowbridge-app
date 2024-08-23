@@ -125,6 +125,8 @@ export async function getSnowEnvBasedOnRelayChain(
     const examinedBlock = await relayApi.rpc.chain.getBlock(examinedBlockHash);
     const relaychainName = await relayApi.rpc.system.chain();
 
+    await relayApi.disconnect();
+
     if (
       examinedBlock.block.header.stateRoot.toHex() ===
       lastRelayParentBlockStorageRoot
