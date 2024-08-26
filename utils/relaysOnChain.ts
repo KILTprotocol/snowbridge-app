@@ -25,7 +25,7 @@ export async function getApi(wsUrl: string): Promise<ApiPromise | undefined> {
         : new WsProvider(wsUrl),
       throwOnConnect: true,
     });
-    return api;
+    return api.isReadyOrError;
   } catch (error) {
     console.error(`Could not connect to api under ${wsUrl}`);
     return undefined;
