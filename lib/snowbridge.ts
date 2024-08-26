@@ -31,7 +31,14 @@ export async function populateParachainConfigs() {
     const newConfig = await buildParachainConfig(endpoint);
 
     // debugger:
-    console.log("newConfig: ", JSON.stringify(newConfig, null, 2));
+    console.log(
+      "newConfig: ",
+      JSON.stringify(
+        newConfig,
+        (_, v) => (typeof v === "bigint" ? v.toString() : v), // replacer of bigInts
+        2,
+      ),
+    );
 
     if (!newConfig) {
       return;
