@@ -146,7 +146,7 @@ export async function buildParachainConfig(
     pallet: switchPalletName,
     parachainId: paraId,
     location: {
-      id: chainName.toLowerCase().replaceAll(/\s/, ""),
+      id: chainName.toLowerCase().replaceAll(/\s/g, ""),
       name: chainName,
       type: "substrate",
       destinationIds: ["assethub"],
