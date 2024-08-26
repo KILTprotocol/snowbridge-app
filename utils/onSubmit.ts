@@ -686,14 +686,16 @@ export async function submitAssetHubToParachainTransfer({
     throw Error(`Invalid form state: destination does not have parachain id.`);
   }
 
-  const assetHubApi = context.polkadot.api.assetHub;
+  const parachainID = destination.paraInfo.paraId;
+
+  const parachainApi = context.polkadot.api.parachains[parachainID];
 
   source.paraInfo?.decimals;
   source.paraInfo?.addressType;
   source.paraInfo?.destinationFeeDOT;
   source.destinationIds;
 
-  const switchPair = await assetHubApi.query[pallet].switchPair();
+  const switchPair = await parachainApi.query[pallet].switchPair();
   const remoteAssetId = (switchPair as any).unwrap().remoteAssetId.toJSON().v3;
   const pathToBeneficiary = {
     parents: 0,
@@ -708,7 +710,7 @@ export async function submitAssetHubToParachainTransfer({
     },
   };
 
-  const tx = assetHubApi.tx.polkadotXcm.transferAssetsUsingTypeAndThen(
+  const tx = parachainApi.tx.polkadotXcm.transferAssetsUsingTypeAndThen(
     // this should actually be a multilocation of the destination of the parachain
     {
       V3: pathToParachain,
