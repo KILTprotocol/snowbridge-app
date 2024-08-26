@@ -27,7 +27,11 @@ export const parachainConfigs: RegisterOfParaConfigs = {};
 export async function populateParachainConfigs() {
   const paraNodes = process.env.PARACHAIN_ENDPOINTS?.split(";");
 
-  paraNodes?.forEach(async (endpoint) => {
+  if (!paraNodes) {
+    return;
+  }
+
+  for await (const endpoint of paraNodes) {
     const newConfig = await buildParachainConfig(endpoint);
 
     // debugger:
@@ -48,7 +52,7 @@ export async function populateParachainConfigs() {
     } else {
       parachainConfigs[newConfig.name] = newConfig;
     }
-  });
+  }
 }
 
 function addParachains(env: environment.SnowbridgeEnvironment) {
