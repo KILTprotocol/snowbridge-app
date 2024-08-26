@@ -132,22 +132,12 @@ export async function buildParachainConfig(
   const addressType = await getAddressType(paraApi);
 
   // Get information about the wrapped erc20 token
-  const assetHubEndpoint =
-    SNOWBRIDGE_ENV[snowBridgeEnvName].config.ASSET_HUB_URL;
-  const assetHubApi = await getApi(assetHubEndpoint);
-  if (!assetHubApi) {
-    console.log(
-      `Could not connect to assetHub API under "${assetHubEndpoint}"`,
-    );
-    return;
-  }
-
   const switchPalletName = "assetSwitchPool1"; // assumes that first pool is between native token and its erc20 wrapped counterpart
-  const switchPair = await assetHubApi.query[switchPalletName].switchPair();
-  const remoteAssetId = (switchPair as any).unwrap().remoteAssetId.toJSON().v3;
+  const switchPair = await paraApi.query[switchPalletName].switchPair();
+  const contractAddress = (switchPair as any).unwrap().remoteAssetId.toJSON().v4
+    .interior.x2[1].accountKey20.key;
 
   paraApi.disconnect();
-  assetHubApi.disconnect();
 
   return {
     name: chainName,
@@ -172,7 +162,7 @@ export async function buildParachainConfig(
         {
           // TODO: find a way to fetch
           id: "w" + tokenSymbol,
-          address: remoteAssetId,
+          address: contractAddress,
           minimumTransferAmount,
         },
       ],
