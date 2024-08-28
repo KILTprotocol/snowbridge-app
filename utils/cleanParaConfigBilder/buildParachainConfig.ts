@@ -1,13 +1,13 @@
-import { parachainNativeAsset } from '@snowbridge/api/dist/assets';
+import { parachainNativeAsset } from "@snowbridge/api/dist/assets";
 import {
   SNOWBRIDGE_ENV,
   TransferLocation,
-} from '@snowbridge/api/dist/environment';
+} from "@snowbridge/api/dist/environment";
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { IERC20Metadata__factory } from '@snowbridge/contract-types';
+import { IERC20Metadata__factory } from "@snowbridge/contract-types";
 
-import { getEtherApi, getSubstApi } from './getApi';
-import { getAddressType, getSnowEnvBasedOnRelayChain } from './paraUtils';
+import { getEtherApi, getSubstApi } from "./getApi";
+import { getAddressType, getSnowEnvBasedOnRelayChain } from "./paraUtils";
 
 /** Mock up from:
  *
@@ -15,10 +15,10 @@ import { getAddressType, getSnowEnvBasedOnRelayChain } from './paraUtils';
  *
  *  type SnowbridgeEnvironmentNames = (typeof snowbridgeEnvironmentNames)[number]; */
 type SnowbridgeEnvironmentNames =
-  | 'local_e2e'
-  | 'rococo_sepolia'
-  | 'polkadot_mainnet'
-  | 'unsupported_relaychain';
+  | "local_e2e"
+  | "rococo_sepolia"
+  | "polkadot_mainnet"
+  | "unsupported_relaychain";
 
 interface ParaConfig {
   name: string;
@@ -55,7 +55,7 @@ export async function buildParachainConfig(
   )) as SnowbridgeEnvironmentNames;
 
   //debugger:
-  console.log('snowBridgeEnvName: ', snowBridgeEnvName);
+  console.log("snowBridgeEnvName: ", snowBridgeEnvName);
 
   /** The Snowbridge team decided to set the amount of the existential deposit as the minimal transfer amount. */
   const minimumTransferAmount = BigInt(
@@ -69,12 +69,12 @@ export async function buildParachainConfig(
   console.log(`The address type used is: ${addressType}`);
 
   // Get information about the wrapped erc20 token from parachain
-  const switchPalletName = 'assetSwitchPool1'; // assumes that first pool is between native token and its erc20 wrapped counterpart
+  const switchPalletName = "assetSwitchPool1"; // assumes that first pool is between native token and its erc20 wrapped counterpart
   const switchPair = await paraApi.query[switchPalletName].switchPair();
   const contractAddress = (switchPair as any).unwrap().remoteAssetId.toJSON().v4
     .interior.x2[1].accountKey20.key;
 
-  console.log('contractAddress: ', contractAddress);
+  console.log("contractAddress: ", contractAddress);
 
   // Get information about the wrapped erc20 token from ethereum
   const etherEndpoint =
@@ -102,10 +102,10 @@ export async function buildParachainConfig(
     pallet: switchPalletName,
     parachainId: paraId,
     location: {
-      id: chainName.toLowerCase().replaceAll(/\s/g, ''),
+      id: chainName.toLowerCase().replaceAll(/\s/g, ""),
       name: chainName,
-      type: 'substrate',
-      destinationIds: ['assethub'],
+      type: "substrate",
+      destinationIds: ["assethub"],
       paraInfo: {
         paraId: paraId,
         destinationFeeDOT: 0n,

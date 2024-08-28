@@ -1,4 +1,4 @@
-import { ApiPromise, HttpProvider, WsProvider } from '@polkadot/api';
+import { ApiPromise, HttpProvider, WsProvider } from "@polkadot/api";
 
 /** Attempts to establish an API connection with a _Substrate_ blockchain node using the provided URL `wsUrl`.
  *
@@ -12,7 +12,7 @@ import { ApiPromise, HttpProvider, WsProvider } from '@polkadot/api';
 export async function getSubstApi(
   wsUrl: string,
 ): Promise<ApiPromise | undefined> {
-  const provider = wsUrl.startsWith('http')
+  const provider = wsUrl.startsWith("http")
     ? new HttpProvider(wsUrl)
     : new WsProvider(wsUrl);
   try {
@@ -41,7 +41,7 @@ export async function getSubstApi(
   }
 }
 
-import { AbstractProvider, JsonRpcProvider, WebSocketProvider } from 'ethers';
+import { AbstractProvider, JsonRpcProvider, WebSocketProvider } from "ethers";
 
 /**
  * Attempts to establish a connection with an _Ethereum_ node using the provided URL `nodeUrl`.
@@ -60,7 +60,7 @@ import { AbstractProvider, JsonRpcProvider, WebSocketProvider } from 'ethers';
 export async function getEtherApi(
   nodeUrl: string,
 ): Promise<AbstractProvider | undefined> {
-  const provider = nodeUrl.startsWith('http')
+  const provider = nodeUrl.startsWith("http")
     ? new JsonRpcProvider(nodeUrl)
     : new WebSocketProvider(nodeUrl, undefined, { polling: true });
 

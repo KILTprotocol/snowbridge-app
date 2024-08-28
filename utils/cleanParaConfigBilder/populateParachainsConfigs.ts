@@ -1,18 +1,18 @@
-import { configDotenv } from 'dotenv';
+import { configDotenv } from "dotenv";
 
 import {
   buildParachainConfig,
   RegisterOfParaConfigs,
-} from './buildParachainConfig';
+} from "./buildParachainConfig";
 
 export const parachainConfigs: RegisterOfParaConfigs = {};
 
 export async function populateParachainConfigs() {
   configDotenv();
-  const paraNodes = process.env.PARACHAIN_ENDPOINTS?.split(';');
+  const paraNodes = process.env.PARACHAIN_ENDPOINTS?.split(";");
   const etherApiKey = process.env.NEXT_PUBLIC_ALCHEMY_KEY;
 
-  console.log('paraNodes: ', paraNodes);
+  console.log("paraNodes: ", paraNodes);
 
   if (!paraNodes || !etherApiKey) {
     return;
@@ -35,10 +35,10 @@ export async function populateParachainConfigs() {
 populateParachainConfigs()
   .then(() =>
     console.log(
-      'parachainConfigs: ',
+      "parachainConfigs: ",
       JSON.stringify(
         parachainConfigs,
-        (_, v) => (typeof v === 'bigint' ? v.toString() : v), // replacer of bigInts
+        (_, v) => (typeof v === "bigint" ? v.toString() : v), // replacer of bigInts
         2,
       ),
     ),

@@ -1,13 +1,13 @@
-import { ApiPromise } from '@polkadot/api';
-import { Bytes, Option, Struct, TypeDefInfo, u32 } from '@polkadot/types';
-import { H256 } from '@polkadot/types/interfaces';
+import { ApiPromise } from "@polkadot/api";
+import { Bytes, Option, Struct, TypeDefInfo, u32 } from "@polkadot/types";
+import { H256 } from "@polkadot/types/interfaces";
 
 import {
   AddressType,
   SnowbridgeEnvironment,
-} from '@snowbridge/api/dist/environment';
+} from "@snowbridge/api/dist/environment";
 
-import { getSubstApi } from './getApi';
+import { getSubstApi } from "./getApi";
 
 // // explicit Definition:
 interface PolkadotPrimitivesV5PersistedValidationData extends Struct {
@@ -25,7 +25,7 @@ async function getRelaysChainLastParentBlockInfo(api: ApiPromise) {
 
   if (validationData.isNone) {
     throw new Error(
-      'This is not a parachain or validation data is unavailable',
+      "This is not a parachain or validation data is unavailable",
     );
   }
   const { relayParentNumber, relayParentStorageRoot } = validationData.unwrap();
@@ -33,9 +33,9 @@ async function getRelaysChainLastParentBlockInfo(api: ApiPromise) {
   const lastRelayParentBlock = relayParentNumber.toNumber();
   const lastRelayParentBlockStorageRoot = relayParentStorageRoot.toHex();
 
-  console.log('lastRelayParentBlock: ', lastRelayParentBlock);
+  console.log("lastRelayParentBlock: ", lastRelayParentBlock);
   console.log(
-    'lastRelayParentBlockStorageRoot: ',
+    "lastRelayParentBlockStorageRoot: ",
     lastRelayParentBlockStorageRoot,
   );
 
@@ -88,28 +88,28 @@ export async function getSnowEnvBasedOnRelayChain(
     `"${parachainName}" relays on a blockchain that is not part of the Snowbridge API.`,
   );
 
-  return 'unsupported_relaychain';
+  return "unsupported_relaychain";
 }
 
 export async function getAddressType(api: ApiPromise): Promise<AddressType> {
   // Assume that the first type defined in the runtime is the AccountId
   const lookedUpType = api.registry.lookup.getTypeDef(0);
-  if (lookedUpType.type === 'AccountId32') {
-    return '32byte';
+  if (lookedUpType.type === "AccountId32") {
+    return "32byte";
   }
 
-  if (lookedUpType.type === 'AccountId20') {
-    return '20byte';
+  if (lookedUpType.type === "AccountId20") {
+    return "20byte";
   }
 
   if (lookedUpType.info === TypeDefInfo.VecFixed) {
     const length = lookedUpType.length;
     if (length === 20) {
-      return '20byte';
+      return "20byte";
     }
     if (length === 32) {
-      return '32byte';
+      return "32byte";
     }
   }
-  return 'both';
+  return "both";
 }
