@@ -1,4 +1,4 @@
-import { configDotenv } from "dotenv";
+// import { configDotenv } from "dotenv";
 
 import {
   buildParachainConfig,
@@ -8,7 +8,7 @@ import {
 export const parachainConfigs: RegisterOfParaConfigs = {};
 
 export async function populateParachainConfigs() {
-  configDotenv();
+  // configDotenv();
   const paraNodes = process.env.PARACHAIN_ENDPOINTS?.split(";");
   const etherApiKey = process.env.NEXT_PUBLIC_ALCHEMY_KEY;
 
