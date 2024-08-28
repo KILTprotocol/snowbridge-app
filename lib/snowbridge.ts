@@ -1,7 +1,7 @@
 import {
-  RegisterOfParaConfigs,
   buildParachainConfig,
-} from "@/utils/parachainConfigs";
+  RegisterOfParaConfigs,
+} from "@/utils/cleanParaConfigBilder/buildParachainConfig";
 import { u8aToHex } from "@polkadot/util";
 import { blake2AsU8a, encodeAddress } from "@polkadot/util-crypto";
 import {
@@ -26,13 +26,14 @@ export const parachainConfigs: RegisterOfParaConfigs = {};
 
 export async function populateParachainConfigs() {
   const paraNodes = process.env.PARACHAIN_ENDPOINTS?.split(";");
+  const etherApiKey = process.env.NEXT_PUBLIC_ALCHEMY_KEY;
 
-  if (!paraNodes) {
+  if (!paraNodes || !etherApiKey) {
     return;
   }
 
   for await (const endpoint of paraNodes) {
-    const newConfig = await buildParachainConfig(endpoint);
+    const newConfig = await buildParachainConfig(endpoint, etherApiKey);
 
     // debugger:
     console.log(
