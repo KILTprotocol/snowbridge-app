@@ -91,7 +91,11 @@ export async function buildParachainConfig(
   const contractAddress = (switchPair as any).unwrap().remoteAssetId.toJSON().v4
     .interior.x2[1].accountKey20.key;
 
+  const xcmFee = (switchPair as any).unwrap().remoteXcmFee.toJSON().v4.fun
+    .fungible as number;
+
   console.log("contractAddress: ", contractAddress);
+  console.log("xcmFee: ", xcmFee);
 
   // Get information about the wrapped erc20 token from ethereum
   const etherEndpoint =
@@ -125,7 +129,7 @@ export async function buildParachainConfig(
       destinationIds: ["assethub"],
       paraInfo: {
         paraId: paraId,
-        destinationFeeDOT: 0n,
+        destinationFeeDOT: BigInt(xcmFee),
         skipExistentialDepositCheck: false,
         addressType: addressType,
         decimals: tokenDecimal,
