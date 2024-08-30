@@ -32,9 +32,22 @@ interface ParaConfig {
 export interface RegisterOfParaConfigs {
   [name: string]: ParaConfig;
 }
+/**
+ * Gets all necessary Information about a _Substrate_ parachain to extend the Snowbridge Environment with it.
+ *
+ * It gathers information from a node of the parachain under `paraEndpoint` and the contract on the ethereum side through and _Alchemy_ node.
+ *
+ * If the name of the Switch Pallet is not passed, it assumes that first switch pool is between native token and its erc20 wrapped counterpart.
+ *
+ * @param paraEndpoint Endpoint of a Substrate Parachain Node.
+ * @param etherApiKey API Key to use connect to ether-node through Alchemy.
+ * @param switchPalletName Name of wished switch pallet on the parachain itself.
+ * @returns necessary data to extend the _Snowbridge Environment_ or `void` on failure.
+ */
 export async function buildParachainConfig(
   paraEndpoint: string,
   etherApiKey: string,
+  switchPalletName: string = "assetSwitchPool1",
 ): Promise<ParaConfig | void> {
   const paraApi = await getSubstApi(paraEndpoint);
 
@@ -69,7 +82,6 @@ export async function buildParachainConfig(
   console.log(`The address type used is: ${addressType}`);
 
   // Get information about the wrapped erc20 token from parachain
-  const switchPalletName = "assetSwitchPool1"; // assumes that first pool is between native token and its erc20 wrapped counterpart
   const switchPair = await paraApi.query[switchPalletName].switchPair();
   const contractAddress = (switchPair as any).unwrap().remoteAssetId.toJSON().v4
     .interior.x2[1].accountKey20.key;
