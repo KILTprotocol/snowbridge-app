@@ -67,6 +67,11 @@ export async function buildParachainConfig(
     SNOWBRIDGE_ENV,
   )) as SnowbridgeEnvironmentNames;
 
+  if (snowBridgeEnvName === "unsupported_relaychain") {
+    // error message already logged from getSnowEnvBasedOnRelayChain()
+    return;
+  }
+
   //debugger:
   console.log("snowBridgeEnvName: ", snowBridgeEnvName);
 
