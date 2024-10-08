@@ -30,8 +30,8 @@ export const TransferLocationSchema = z.object({
 });
 
 export const formSchemaSwitch = z.object({
-  source: TransferLocationSchema,
-  destination: TransferLocationSchema,
+  sourceId: z.string().min(1, "Select Source."),
+  destinationId: z.string().min(1, "Select destination."),
   token: z.string().min(1, "Select token."),
   amount: z
     .string()

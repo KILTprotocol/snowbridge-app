@@ -47,7 +47,16 @@ import { parachainConfigs } from "@/utils/parachainConfigs";
 import { useRouter } from "next/navigation";
 import { TopUpXcmFee } from "./TopUpXcmFee";
 import { toPolkadot } from "@snowbridge/api";
-import { LocationSelector } from "./LocationSelector";
+
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import { TransferLocation } from "@snowbridge/api/dist/environment";
 
 export const SwitchComponent: FC = () => {
   const snowbridgeEnvironment = useAtomValue(snowbridgeEnvironmentAtom);
@@ -55,22 +64,6 @@ export const SwitchComponent: FC = () => {
   const polkadotAccounts = useAtomValue(polkadotAccountsAtom);
   const polkadotAccount = useAtomValue(polkadotAccountAtom);
   const router = useRouter();
-
-  const [feeDisplay, setFeeDisplay] = useState("");
-  const [error, setError] = useState<ErrorInfo | null>(null);
-  const [busyMessage, setBusyMessage] = useState("");
-  const [sufficientTokenAvailable, setSufficientTokenAvailable] =
-    useState(true);
-  const [topUpCheck, setTopUpCheck] = useState({
-    result: false,
-    xcmBalance: "",
-  });
-  const [transaction, setTransaction] = useState<SubmittableExtrinsic<
-    "promise",
-    ISubmittableResult
-  > | null>(null);
-  const [tokenSymbol, setTokenSymbol] = useState<string | null>(null);
-
   const filteredLocations = useMemo(
     () =>
       snowbridgeEnvironment.locations
@@ -78,6 +71,11 @@ export const SwitchComponent: FC = () => {
         .filter((x) => x.name !== "Muse"),
     [snowbridgeEnvironment],
   );
+  const initialSource = useMemo(() => {
+    return (
+      filteredLocations.find((v) => v.id === "assethub") || filteredLocations[0]
+    );
+  }, [filteredLocations]);
 
   const initialDestination = useMemo(() => {
     return (
@@ -86,14 +84,31 @@ export const SwitchComponent: FC = () => {
       }) || filteredLocations[0]
     );
   }, [filteredLocations]);
+  const [source, setSource] = useState<TransferLocation>(initialSource);
+  const [destination, setDestination] =
+    useState<TransferLocation>(initialDestination);
+  const [feeDisplay, setFeeDisplay] = useState("");
+  const [error, setError] = useState<ErrorInfo | null>(null);
+  const [busyMessage, setBusyMessage] = useState("");
+  const [sufficientTokenAvailable, setSufficientTokenAvailable] =
+    useState(true);
+  const [topUpCheck, setTopUpCheck] = useState({
+    xcmFee: "",
+    xcmBalance: "",
+  });
+  const [transaction, setTransaction] = useState<SubmittableExtrinsic<
+    "promise",
+    ISubmittableResult
+  > | null>(null);
+  const [tokenSymbol, setTokenSymbol] = useState<string | null>(null);
 
   const form: UseFormReturn<FormDataSwitch> = useForm<
     z.infer<typeof formSchemaSwitch>
   >({
     resolver: zodResolver(formSchemaSwitch),
     defaultValues: {
-      source: filteredLocations.find((v) => v.id === "assethub"),
-      destination: initialDestination,
+      sourceId: filteredLocations.find((v) => v.id === "assethub")!.id ?? "",
+      destinationId: initialDestination.id ?? "",
       token: initialDestination?.erc20tokensReceivable[0].id,
       beneficiary: polkadotAccount?.address ?? "",
       sourceAccount: polkadotAccount?.address ?? "",
@@ -101,12 +116,61 @@ export const SwitchComponent: FC = () => {
     },
   });
 
-  const source = form.watch("source");
-  const destination = form.watch("destination");
+  const sourceId = form.watch("sourceId");
+  const destinationId = form.watch("destinationId");
   const sourceAccount = form.watch("sourceAccount");
   const beneficiary = form.watch("beneficiary");
   const amount = form.watch("amount");
   const token = form.watch("token");
+
+  // const newDestinationId = useMemo(() => {
+  //   return filteredLocations.find((x) => x !== "ethereum");
+  // }, [source.destinationIds]);
+  // const selectedDestination = useMemo(() => {
+  //   return filteredLocations.find((v) => v.id === newDestinationId);
+  // }, [filteredLocations, newDestinationId]);
+
+  // useEffect(() => {
+  //   if (!context || !source || source.destinationIds.length === 0) return;
+
+  //   const currentDestination = form.getValues("destinationId");
+
+  //   if (currentDestination?.id !== newDestinationId && selectedDestination) {
+  //     form.setValue("destinationId", selectedDestination);
+
+  //     const newToken =
+  //       selectedDestination.erc20tokensReceivable[0]?.address || "";
+  //     if (form.getValues("token") !== newToken) {
+  //       form.setValue("token", newToken);
+  //       form.resetField("amount");
+  //       setFeeDisplay("");
+  //     }
+  //   }
+
+  //   if (source.id === "assethub" && selectedDestination?.id === "assethub") {
+  //     const nonAssetHubDestination = filteredLocations.find(
+  //       (v) => v.id !== "assethub",
+  //     );
+  //     if (nonAssetHubDestination) {
+  //       form.setValue("destination", nonAssetHubDestination);
+  //     }
+  //   }
+
+  //   if (source.id === "assethub") {
+  //     const { nativeTokenMetadata } =
+  //       parachainConfigs[selectedDestination?.name || ""];
+  //     setTokenSymbol(nativeTokenMetadata.symbol);
+  //   }
+  // }, [
+  //   context,
+  //   filteredLocations,
+  //   form,
+  //   newDestinationId,
+  //   selectedDestination,
+  //   setFeeDisplay,
+  //   setTokenSymbol,
+  //   source,
+  // ]);
 
   const beneficiaries: AccountInfo[] = useMemo(
     () =>
@@ -145,15 +209,15 @@ export const SwitchComponent: FC = () => {
       setFeeDisplay(transactionFee);
     };
 
-    if (source.id === "assethub") {
-      if (destination.id === "assethub") {
+    if (sourceId === "assethub") {
+      if (destinationId === "assethub") {
         return;
       }
       await submitAssetHubToParachainTransfer({
         context,
         beneficiary,
         source,
-        destination,
+        destination: destination,
         amount: amountInSmallestUnit,
         sourceAccount,
         setError,
@@ -183,6 +247,8 @@ export const SwitchComponent: FC = () => {
     sourceAccount,
     token,
     amountInSmallestUnit,
+    sourceId,
+    destinationId,
   ]);
 
   useEffect(() => {
@@ -193,12 +259,10 @@ export const SwitchComponent: FC = () => {
   const handleSufficientTokens = (result: boolean) => {
     setSufficientTokenAvailable(result);
   };
-  const handleTopUpCheck = useCallback(
-    (result: boolean, xcmBalance: string) => {
-      setTopUpCheck({ result, xcmBalance });
-    },
-    [],
-  );
+  const handleTopUpCheck = (xcmFee: string, xcmBalance: string) => {
+    setTopUpCheck({ xcmFee, xcmBalance });
+  };
+
   const onSubmit = useCallback(async () => {
     if (!transaction || !context) {
       return;
@@ -206,7 +270,7 @@ export const SwitchComponent: FC = () => {
 
     // to do: better error information for the user.
     try {
-      if (destination.id === "assethub" && !sufficientTokenAvailable) {
+      if (destinationId === "assethub" && !sufficientTokenAvailable) {
         setError({
           title: "Insufficient Tokens.",
           description:
@@ -292,7 +356,7 @@ export const SwitchComponent: FC = () => {
   }, [
     transaction,
     context,
-    destination.id,
+    destinationId,
     sufficientTokenAvailable,
     polkadotAccounts,
     form,
@@ -315,14 +379,82 @@ export const SwitchComponent: FC = () => {
               onSubmit={form.handleSubmit(() => onSubmit())}
               className="space-y-2"
             >
-              <LocationSelector
-                form={form}
-                filteredLocations={filteredLocations}
-                source={source}
-                setFeeDisplay={setFeeDisplay}
-                setTokenSymbol={setTokenSymbol}
-              />
+              <div className="grid grid-cols-2 space-x-2">
+                <FormField
+                  control={form.control}
+                  name="sourceId"
+                  render={({ field }) => (
+                    <FormItem {...field}>
+                      <FormLabel>Source</FormLabel>
+                      <FormControl>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a source" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectGroup>
+                              {filteredLocations
+                                .filter((s) => s.destinationIds.length > 0)
+                                .map((s) => (
+                                  <SelectItem key={s.id} value={s.id}>
+                                    {s.name}
+                                  </SelectItem>
+                                ))}
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="destinationId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Destination</FormLabel>
+                      <FormControl>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a destination" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectGroup>
+                              {source.destinationIds.map((destinationId) => {
+                                const availableDestination =
+                                  filteredLocations.find(
+                                    (v) => v.id === destinationId,
+                                  );
 
+                                if (!availableDestination) {
+                                  return null;
+                                }
+
+                                return (
+                                  <SelectItem
+                                    key={availableDestination.id}
+                                    value={availableDestination.id}
+                                  >
+                                    {availableDestination.name}
+                                  </SelectItem>
+                                );
+                              })}
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
               <FormField
                 control={form.control}
                 name="sourceAccount"
@@ -349,26 +481,30 @@ export const SwitchComponent: FC = () => {
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="beneficiary"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Beneficiary</FormLabel>
-                    <FormDescription className="hidden md:flex">
-                      Receiver account on the destination.
-                    </FormDescription>
-                    <FormControl>
-                      <SelectAccount
-                        accounts={beneficiaries}
-                        field={field}
-                        allowManualInput={false}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {destination.name !== "assethub" ? (
+                <>Beneficiary Account: {sourceAccount}</>
+              ) : (
+                <FormField
+                  control={form.control}
+                  name="beneficiary"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Beneficiary</FormLabel>
+                      <FormDescription className="hidden md:flex">
+                        Receiver account on the destination.
+                      </FormDescription>
+                      <FormControl>
+                        <SelectAccount
+                          accounts={beneficiaries}
+                          field={field}
+                          allowManualInput={false}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
               <div className="flex space-x-2">
                 <div className="w-2/3">
                   <FormField
@@ -397,8 +533,11 @@ export const SwitchComponent: FC = () => {
               <div className="text-sm text-right text-muted-foreground px-1">
                 Transfer Fee: {feeDisplay}
               </div>
-              <br />
-              {!topUpCheck.result && source.id !== "assethub" ? (
+              <div className="text-sm text-right text-muted-foreground px-1">
+                XCM Fee: {topUpCheck.xcmFee}
+              </div>
+              {topUpCheck.xcmFee <= topUpCheck.xcmBalance &&
+              source.id !== "assethub" ? (
                 <TopUpXcmFee
                   sourceAccount={sourceAccount}
                   source={source}
@@ -407,17 +546,11 @@ export const SwitchComponent: FC = () => {
                   sufficientTokenAvailable={sufficientTokenAvailable}
                   polkadotAccounts={polkadotAccounts!}
                   xcmBalance={topUpCheck.xcmBalance}
-                  formData={form.getValues()}
+                  formDataSwitch={form.getValues()}
                 />
               ) : (
                 <Button
-                  disabled={
-                    !context ||
-                    !token ||
-                    !amount ||
-                    !beneficiary ||
-                    !sourceAccount
-                  }
+                  disabled={!context || !token || !amount || !sourceAccount}
                   className="w-full my-8"
                   type="submit"
                 >
@@ -431,7 +564,7 @@ export const SwitchComponent: FC = () => {
       <BusyDialog open={busyMessage !== ""} description={busyMessage} />
       <SendErrorDialog
         info={error}
-        formData={form.getValues()}
+        formDataSwitch={form.getValues()}
         destination={destination}
         dismiss={() => setError(null)}
       />

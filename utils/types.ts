@@ -16,9 +16,9 @@ export type ErrorInfo = {
 };
 
 export type FormDataSwitch = {
-  source: environment.TransferLocation;
+  sourceId: string;
   sourceAccount: string;
-  destination: environment.TransferLocation;
+  destinationId: string;
   token: string;
   amount: string;
   beneficiary: string;
