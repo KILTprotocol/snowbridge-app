@@ -202,7 +202,13 @@ export const SwitchComponent: FC = () => {
       const transactionFee = await transaction.paymentInfo(sourceAccount);
 
       setTransaction(transaction);
-      setFeeDisplay(transactionFee.partialFee.toHuman());
+      const rawFee = transactionFee.partialFee.toHuman().replace(/,/g, "");
+      const transferFeeFormatted = formatBalance({
+        number: BigInt(rawFee),
+        decimals: 15,
+        displayDecimals: 15,
+      });
+      setFeeDisplay(transferFeeFormatted);
     } catch (err) {
       console.error(err);
       setError({
@@ -537,7 +543,7 @@ export const SwitchComponent: FC = () => {
                 </div>
               </div>
               <div className="text-sm text-right text-muted-foreground px-1">
-                Transfer Fee: {feeDisplay}
+                Transfer Fee: {feeDisplay} {tokenSymbol ?? ""}
                 <br />
                 {sourceId === "assethub" ? null : (
                   <>
